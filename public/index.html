@@ -26,6 +26,7 @@
     <!-- Navbar -->
     <nav class="container-fluid menu grid">
         <ul>
+            <!-- Open image -->
             <li>
                 <label role="button" for="open-image" title="Open image">
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5"
@@ -40,7 +41,9 @@
                 </label>
                 <input class="secondary none" type="file" id="open-image" src="" alt="">
             </li>
-            <li><button id="undo-btn" disabled title="Undo">
+            <!-- undo redo -->
+            <li>
+                <button id="undo-btn" disabled title="Undo">
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" viewBox="0 0 24 24"
                         stroke-width="1.5" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
                         <path d="M4.5 8H15s0 0 0 0 5 0 5 4.706C20 18 15 18 15 18H6.286" stroke="#eeeeee"
@@ -61,7 +64,25 @@
                     </svg>
                 </button>
             </li>
+            <!-- Grid size (grid-width, grid-height, grid-offx, and grid-offy)-->
             <li>
+                <label class="inline-label text-light" for="grid-width" title="image height in pixels">Grid-width</label>
+                <input class="image-offset text-light" value="48" type="number" id="grid-width">
+            </li>
+            <li>
+                <label class="inline-label text-light" for="grid-height" title="image height in pixels">Grid-height</label>
+                <input class="image-offset text-light" value="48" type="number" id="grid-height">
+            </li>
+            <li>
+                <label class="inline-label text-light" for="grid-offx" title="image height in pixels">Grid-offx</label>
+                <input class="image-offset text-light" value="0" type="number" id="grid-offx">
+            </li>
+            <li>
+                <label class="inline-label text-light" for="grid-offy" title="image height in pixels">Grid-offy</label>
+                <input class="image-offset text-light" value="0" type="number" id="grid-offy">
+            </li>
+            <!-- Frame size -->
+            <li class="right">
                 <label class="inline-label text-light" for="width" title="image width in pixels">Width</label>
                 <input class="image-offset text-light" value="256" type="number" id="width">
             </li>
@@ -69,7 +90,8 @@
                 <label class="inline-label text-light" for="height" title="image height in pixels">Height</label>
                 <input class="image-offset text-light" value="256" type="number" id="height">
             </li>
-            <li class="right">
+            <!-- Save tileset -->
+            <li >
                 <button id="save-tileset" title="Save tileset">
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5"
                         viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
@@ -100,6 +122,7 @@
         <div id="left-panel" class="left-panel">
             <div id="red-zone" class="red-zone"></div>
             <canvas id="imageCanvas" class="none"></canvas>
+            <canvas id="gridCanvas" class="grid-canvas none"></canvas>
             <img id="image" alt="" class="none" />
             <img id="image-copy" alt="" class="none" />
         </div>

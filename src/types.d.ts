@@ -1,3 +1,5 @@
+import type { TGrid } from "./models/TGrid";
+
 export type TSelectedImageArea = {
     sx: number
     sy: number
@@ -27,3 +29,5 @@ export type TTileset = {
     undos: [],
     redos: []
 }
+
+export { TGrid };

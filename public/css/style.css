@@ -16,9 +16,9 @@ body {
 
 canvas {
     image-rendering: pixelated;
-    background-image: url("/assets/grid-1.png");
+    /* background-image: url("/assets/grid-1.png");
     background-repeat: repeat;
-    background-blend-mode: luminosity;
+    background-blend-mode: luminosity; */
     border: #1F1F1F solid 1px;
 }
 
@@ -52,59 +52,67 @@ ul li button {
 }
 
 .full-height-container {
-    position: absolute;
+    display: flex;
+    position: fixed;
     top: 58px;
+    bottom: 0;
     left: 0;
-    min-width: 100%;
-    min-height: 100%;
-    overflow: none;
+    right: 0;
+    overflow: hidden;
 }
 
 .left-panel {
-    position: absolute;
-    width: 50dvw;
-    height: calc(100dvh - 58px);
-    max-width: 50dvw;
-    max-height: calc(100dvh - 58px);
-    top: 58;
-    left: 0;
+    position: relative;
+    flex: 0 0 50%;
+    height: 100%;
     overflow: scroll;
     margin: 0;
     background-image: url("/assets/transparent-texture.png");
     background-repeat: repeat;
+}
+
+#imageCanvas, .grid-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Crucial : la grille est visuellement au-dessus mais ne doit pas 
+   intercepter les clics destinés à l'imageCanvas */
+.grid-canvas {
+    pointer-events: none;
+    z-index: 1; /* Juste au-dessus de l'image */
 }
 
 .right-panel {
-    position: fixed;
-    width: 50dvw;
-    height: calc(50dvh - 58px);
-    max-width: 50dvw;
-    max-height: calc(100dvh - 58px);
-    top: 58;
-    left: 50dvw;
-    overflow: scroll;
+    flex: 0 0 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     margin: 0;
     background-image: url("/assets/transparent-texture.png");
     background-repeat: repeat;
 }
 
+#tilesetCanvas {
+    flex: 1;
+    overflow: auto;
+}
+
 .right-bottom {
-    position: fixed;
-    width: 50dvw;
-    height: calc(50dvh + 58px);
-    max-width: 50dvw;
-    max-height: calc(50dvh + 58px);
-    top: calc(50dvh);
-    left: 50dvw;
-    overflow: scroll;
+    height: 50%;
+    overflow: auto;
     margin: 0;
     padding: 1rem;
+    background-color: #11191f;
 }
 
 
 .red-zone {
     position: absolute;
     background-color: #dc143c80;
+    z-index: 2;
 }
 
 .menu {
@@ -129,7 +137,7 @@ ul li button {
 }
 
 .image-offset {
-    width: 8rem !important;
+    width: 5rem !important;
 }
 
 .frame-offset {

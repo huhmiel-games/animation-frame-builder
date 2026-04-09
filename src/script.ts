@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { RightPanelScene } from "./rightPanelScene";
-import { TImage, TSelectedImageArea, TTileset } from "./types";
+import { TImage, TSelectedImageArea, TTileset, TGrid } from "./types";
 import { FrameListElement } from './FrameListElement';
 
 // Html elements
@@ -9,11 +9,16 @@ const imageElm = document.getElementById("image") as HTMLImageElement;
 const widthInput = document.getElementById('width') as HTMLInputElement;
 const heightInput = document.getElementById('height') as HTMLInputElement;
 const imageCanvas = document.getElementById('imageCanvas') as HTMLCanvasElement;
+const gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
 const redZone = document.getElementById("red-zone") as HTMLDivElement;
 const floatingCanvas = document.getElementById('floating-canvas') as HTMLCanvasElement;
 const leftPanel = document.getElementById('left-panel') as HTMLDivElement;
 const playBtn = document.getElementById('play-anim') as HTMLButtonElement;
 const rangeElm = document.getElementById('range') as HTMLInputElement;
+const gridWidthInput = document.getElementById('grid-width') as HTMLInputElement;
+const gridHeightInput = document.getElementById('grid-height') as HTMLInputElement;
+const gridOffXInput = document.getElementById('grid-offx') as HTMLInputElement;
+const gridOffYInput = document.getElementById('grid-offy') as HTMLInputElement;
 
 // Data
 const selectedImageArea: TSelectedImageArea = {
@@ -45,6 +50,13 @@ const tileset: TTileset = {
     undos: [],
     redos: []
 }
+
+const grid: TGrid = {
+    width: +gridWidthInput.value || 32,
+    height: +gridHeightInput.value || 32,
+    offsetX: +gridOffXInput.value || 0,
+    offsetY: +gridOffYInput.value || 0
+};
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.CANVAS,
@@ -99,6 +111,10 @@ heightInput.addEventListener('change', startPhaser, false);
 playBtn.addEventListener('click', playOrPause);
 rangeElm.addEventListener('change', changeFrameRate)
 document.getElementById('yoyo')?.addEventListener('change', setYoyo);
+gridWidthInput.addEventListener('input', updateGridState);
+gridHeightInput.addEventListener('input', updateGridState);
+gridOffXInput.addEventListener('input', updateGridState);
+gridOffYInput.addEventListener('input', updateGridState);
 // Init
 
 function startPhaser()
@@ -156,6 +172,15 @@ function changeFrameRate(event)
     scene.changeFrameRate(+event.target.value)
 }
 
+function updateGridState()
+{
+    grid.width = +gridWidthInput.value;
+    grid.height = +gridHeightInput.value;
+    grid.offsetX = +gridOffXInput.value;
+    grid.offsetY = +gridOffYInput.value;
+    renderCanvas();
+}
+
 // Settings
 function openModal(event)
 {
@@ -188,10 +213,58 @@ function openImage(event)
             image.width = imageElm.naturalWidth;
             image.height = imageElm.naturalHeight;
             imageCanvas.classList.remove('none');
-            drawImage(imageCanvas, imageElm);
+            gridCanvas.classList.remove('none');
             image.isLoaded = true;
+            renderCanvas();
         }, { once: true });
     }
+}
+
+/**
+ * Clears the canvas, draws the source image, and overlays the grid.
+ */
+function renderCanvas()
+{
+    if (!image.isLoaded) return;
+    const ctx = imageCanvas.getContext("2d");
+    const gridCtx = gridCanvas.getContext("2d");
+    if (!ctx || !gridCtx) return;
+
+    // Sync canvas dimensions with image natural size
+    imageCanvas.width = image.width;
+    imageCanvas.height = image.height;
+    gridCanvas.width = image.width;
+    gridCanvas.height = image.height;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(imageElm, 0, 0);
+
+    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+    drawGrid(gridCtx);
+}
+
+function drawGrid(ctx: CanvasRenderingContext2D)
+{
+    if (grid.width <= 0 || grid.height <= 0) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = "#ff00c3";
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (let x = grid.offsetX; x <= image.width; x += grid.width)
+    {
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, image.height);
+    }
+
+    // Horizontal lines
+    for (let y = grid.offsetY; y <= image.height; y += grid.height)
+    {
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(image.width, y + 0.5);
+    }
+    ctx.stroke();
 }
 
 async function copy()
@@ -227,6 +300,20 @@ async function copy()
     framesInstance.push(newFrame);
 }
 
+/**
+ * Calculates the nearest grid coordinate based on the grid settings.
+ * @param pos Current mouse position in image pixels
+ * @param step Grid cell size (width or height)
+ * @param offset Grid offset (X or Y)
+ * @param isEnd Whether we are snapping the end of a selection (ceil) or the start (floor)
+ */
+function getGridSnappedCoord(pos: number, step: number, offset: number, isEnd: boolean = false): number
+{
+    const val = (pos - offset) / step;
+    const snapped = isEnd ? Math.ceil(val) : Math.floor(val);
+    return snapped * step + offset;
+}
+
 function onImageCanvasMouseDown(event: MouseEvent)
 {
     if (image.isLoaded === false || event.button !== 0) return;
@@ -236,8 +323,14 @@ function onImageCanvasMouseDown(event: MouseEvent)
         resetSelection(event);
     }
 
-    selectedImageArea.sx = roundMultipleOf8((event.offsetX - image.offsetX) * image.zoom) / image.zoom
-    selectedImageArea.sy = roundMultipleOf8((event.offsetY - image.offsetY) * image.zoom) / image.zoom
+    // Convert display pixels to image pixels
+    const imgX = (event.offsetX / image.zoom) - image.offsetX;
+    const imgY = (event.offsetY / image.zoom) - image.offsetY;
+
+    // Snap to grid and convert back to display pixels for the UI (redZone)
+    selectedImageArea.sx = getGridSnappedCoord(imgX, grid.width, grid.offsetX) * image.zoom;
+    selectedImageArea.sy = getGridSnappedCoord(imgY, grid.height, grid.offsetY) * image.zoom;
+
     selectedImageArea.isDirty = true;
 
     placeRedZone(selectedImageArea.sx, selectedImageArea.sy);
@@ -252,11 +345,14 @@ function onImageCanvasMouseUp(event: MouseEvent)
         event.button !== 0
     ) return;
 
-    let width = roundMultipleOf8(event.offsetX - selectedImageArea.sx) / image.zoom;
-    let height = roundMultipleOf8(event.offsetY - selectedImageArea.sy) / image.zoom;
+    // Convert display pixels to image pixels
+    const imgX = (event.offsetX / image.zoom) - image.offsetX;
+    const imgY = (event.offsetY / image.zoom) - image.offsetY;
 
-    selectedImageArea.ex = selectedImageArea.sx + width * image.zoom;
-    selectedImageArea.ey = selectedImageArea.sy + height * image.zoom;
+    // Snap the end coordinate to the end of the current grid cell
+    // This ensures that even a small drag inside a cell selects the whole cell
+    selectedImageArea.ex = getGridSnappedCoord(imgX, grid.width, grid.offsetX, true) * image.zoom;
+    selectedImageArea.ey = getGridSnappedCoord(imgY, grid.height, grid.offsetY, true) * image.zoom;
 
     selectedImageArea.isComplete = true;
     setRedZoneSize(selectedImageArea);
@@ -332,6 +428,9 @@ function onMouseWheel(event)
 
         imageCanvas.style.width = image.width * image.zoom + 'px';
         imageCanvas.style.height = image.height * image.zoom + 'px';
+        gridCanvas.style.width = image.width * image.zoom + 'px';
+        gridCanvas.style.height = image.height * image.zoom + 'px';
+        renderCanvas();
         leftPanel.scroll(scrollX, scrollY);
     }
 }
@@ -370,23 +469,9 @@ function resetZone()
     selectedImageArea.isDirty = false;
 }
 
-function drawImage(canvas: HTMLCanvasElement, img: HTMLImageElement, x = 0, y = 0)
-{
-    const ctx = canvas.getContext("2d");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    ctx.drawImage(img, x, y);
-}
-
 function clamp(number: number, min: number, max: number)
 {
     return Math.max(min, Math.min(number, max));
-}
-
-function roundMultipleOf8(num: number)
-{
-    const size = 8;
-    return Math.round(num / size) * size;
 }
 
 function resetSelection(event: MouseEvent)
