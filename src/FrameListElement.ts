@@ -29,8 +29,8 @@ export class FrameListElement
 
         const offsetXLabel = this.createLabel('frame offset x in pixels', 'OffsetX: ', ['inline-label', 'text-light'], 'offset-x');
         const offsetYLabel = this.createLabel('frame offset y in pixels', 'OffsetY: ', ['inline-label', 'text-light'], 'offset-y');
-        this.offsetXInput = this.createInputNumber(`offsetX_${this.id}`, ['frame-offset', 'text-light']);
-        this.offsetYInput = this.createInputNumber(`offsetY_${this.id}`, ['frame-offset', 'text-light']);
+        this.offsetXInput = this.createInputNumber(`offsetX_${this.id}`, ['frame-offset', 'text-light'], 'offset-x');
+        this.offsetYInput = this.createInputNumber(`offsetY_${this.id}`, ['frame-offset', 'text-light'], 'offset-y');
         const deleteBtn = document.createElement('button');
         deleteBtn.title = `Delete frame`;
         deleteBtn.role = "button";
@@ -61,14 +61,14 @@ export class FrameListElement
         return label;
     }
 
-    private createInputNumber(id: string, classList: string[]): HTMLInputElement
+    private createInputNumber(id: string, classList: string[], name: string): HTMLInputElement
     {
         const inputNumber = document.createElement('input');
         inputNumber.type = 'number';
         classList.forEach(str => inputNumber.classList.add(str));
-        inputNumber.id = id;
+        inputNumber.id = name + "_" + this.id; // Correct ID for label association
         inputNumber.value = '0';
-        inputNumber.addEventListener('change', this.handleChange)
+        inputNumber.addEventListener('input', this.handleChange)
         return inputNumber;
     }
 
@@ -82,10 +82,12 @@ export class FrameListElement
 
     private selectFrame(event)
     {
-        if (event.target.nodeName === 'LI')
+        // Selection happens if we click the LI or its non-interactive children (span, label)
+        if (['LI', 'SPAN', 'LABEL'].includes(event.target.nodeName))
         {
             this.unselectFrames()
-            event.target.classList.add('border')
+            const li = event.currentTarget as HTMLLIElement;
+            li.classList.add('border')
             this.scene.sprite.anims.stop();
             this.scene.sprite.setTexture(`img_${this.id}`);
             const playBtn = document.getElementById('play-anim') as HTMLButtonElement;

@@ -59,11 +59,11 @@ export class RightPanelScene extends Phaser.Scene
             if (idx !== undefined)
             {
                 this.textures.removeKey(`img_${idx}`);
-                const canvasTexture = this.textures.createCanvas(`img_${idx ?? this.count}`, this.cameras.main.width - offsetX, this.cameras.main.height - offsetY);
+                const canvasTexture = this.textures.createCanvas(`img_${idx}`, this.scale.width, this.scale.height);
                 if (!canvasTexture) throw new Error("Canvas texture failed");
 
                 const ctx = canvasTexture.getContext();
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, offsetX, offsetY);
                 canvasTexture.refresh();
 
                 this.images[idx] = (canvasTexture);
@@ -76,11 +76,11 @@ export class RightPanelScene extends Phaser.Scene
             }
             else
             {
-                const canvasTexture = this.textures.createCanvas(`img_${idx ?? this.count}`, this.cameras.main.width + offsetX, this.cameras.main.height + offsetY);
+                const canvasTexture = this.textures.createCanvas(`img_${this.count}`, this.scale.width, this.scale.height);
                 if (!canvasTexture) throw new Error("Canvas texture failed");
 
                 const ctx = canvasTexture.getContext();
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, offsetX, offsetY);
                 canvasTexture.refresh();
 
                 this.images.push(canvasTexture);
