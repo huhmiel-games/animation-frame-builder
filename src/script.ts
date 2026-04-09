@@ -15,6 +15,7 @@ const floatingCanvas = document.getElementById('floating-canvas') as HTMLCanvasE
 const leftPanel = document.getElementById('left-panel') as HTMLDivElement;
 const playBtn = document.getElementById('play-anim') as HTMLButtonElement;
 const rangeElm = document.getElementById('range') as HTMLInputElement;
+const gridSnapInput = document.getElementById('grid-snap') as HTMLInputElement;
 const gridWidthInput = document.getElementById('grid-width') as HTMLInputElement;
 const gridHeightInput = document.getElementById('grid-height') as HTMLInputElement;
 const gridOffXInput = document.getElementById('grid-offx') as HTMLInputElement;
@@ -52,6 +53,7 @@ const tileset: TTileset = {
 }
 
 const grid: TGrid = {
+    isEnabled: gridSnapInput.checked,
     width: +gridWidthInput.value || 32,
     height: +gridHeightInput.value || 32,
     offsetX: +gridOffXInput.value || 0,
@@ -111,6 +113,7 @@ heightInput.addEventListener('change', startPhaser, false);
 playBtn.addEventListener('click', playOrPause);
 rangeElm.addEventListener('change', changeFrameRate)
 document.getElementById('yoyo')?.addEventListener('change', setYoyo);
+gridSnapInput.addEventListener('change', updateGridState);
 gridWidthInput.addEventListener('input', updateGridState);
 gridHeightInput.addEventListener('input', updateGridState);
 gridOffXInput.addEventListener('input', updateGridState);
@@ -174,6 +177,7 @@ function changeFrameRate(event)
 
 function updateGridState()
 {
+    grid.isEnabled = gridSnapInput.checked;
     grid.width = +gridWidthInput.value;
     grid.height = +gridHeightInput.value;
     grid.offsetX = +gridOffXInput.value;
@@ -240,26 +244,34 @@ function renderCanvas()
     ctx.drawImage(imageElm, 0, 0);
 
     gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-    drawGrid(gridCtx);
+
+    // If custom grid is disabled, we show a subtle 8x8 white grid
+    const width = grid.isEnabled ? grid.width : 8;
+    const height = grid.isEnabled ? grid.height : 8;
+    const offX = grid.isEnabled ? grid.offsetX : 0;
+    const offY = grid.isEnabled ? grid.offsetY : 0;
+    const color = grid.isEnabled ? "rgb(255, 0, 195)" : "rgba(255, 0, 195, 0.35)";
+
+    drawGrid(gridCtx, width, height, offX, offY, color);
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D)
+function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number, offsetY: number, color: string)
 {
-    if (grid.width <= 0 || grid.height <= 0) return;
+    if (width <= 0 || height <= 0) return;
 
     ctx.beginPath();
-    ctx.strokeStyle = "#ff00c3";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1;
 
     // Vertical lines
-    for (let x = grid.offsetX; x <= image.width; x += grid.width)
+    for (let x = offsetX; x <= image.width; x += width)
     {
         ctx.moveTo(x + 0.5, 0);
         ctx.lineTo(x + 0.5, image.height);
     }
 
     // Horizontal lines
-    for (let y = grid.offsetY; y <= image.height; y += grid.height)
+    for (let y = offsetY; y <= image.height; y += height)
     {
         ctx.moveTo(0, y + 0.5);
         ctx.lineTo(image.width, y + 0.5);
@@ -327,9 +339,17 @@ function onImageCanvasMouseDown(event: MouseEvent)
     const imgX = (event.offsetX / image.zoom) - image.offsetX;
     const imgY = (event.offsetY / image.zoom) - image.offsetY;
 
-    // Snap to grid and convert back to display pixels for the UI (redZone)
-    selectedImageArea.sx = getGridSnappedCoord(imgX, grid.width, grid.offsetX) * image.zoom;
-    selectedImageArea.sy = getGridSnappedCoord(imgY, grid.height, grid.offsetY) * image.zoom;
+    // Snap settings: use custom grid if enabled, otherwise fallback to 8px grid
+    const snapW = grid.isEnabled ? grid.width : 8;
+    const snapH = grid.isEnabled ? grid.height : 8;
+    const offX = grid.isEnabled ? grid.offsetX : 0;
+    const offY = grid.isEnabled ? grid.offsetY : 0;
+
+    const finalX = getGridSnappedCoord(imgX, snapW, offX);
+    const finalY = getGridSnappedCoord(imgY, snapH, offY);
+
+    selectedImageArea.sx = finalX * image.zoom;
+    selectedImageArea.sy = finalY * image.zoom;
 
     selectedImageArea.isDirty = true;
 
@@ -349,10 +369,17 @@ function onImageCanvasMouseUp(event: MouseEvent)
     const imgX = (event.offsetX / image.zoom) - image.offsetX;
     const imgY = (event.offsetY / image.zoom) - image.offsetY;
 
-    // Snap the end coordinate to the end of the current grid cell
-    // This ensures that even a small drag inside a cell selects the whole cell
-    selectedImageArea.ex = getGridSnappedCoord(imgX, grid.width, grid.offsetX, true) * image.zoom;
-    selectedImageArea.ey = getGridSnappedCoord(imgY, grid.height, grid.offsetY, true) * image.zoom;
+    // Snap settings: use custom grid if enabled, otherwise fallback to 8px grid
+    const snapW = grid.isEnabled ? grid.width : 8;
+    const snapH = grid.isEnabled ? grid.height : 8;
+    const offX = grid.isEnabled ? grid.offsetX : 0;
+    const offY = grid.isEnabled ? grid.offsetY : 0;
+
+    const finalX = getGridSnappedCoord(imgX, snapW, offX, true);
+    const finalY = getGridSnappedCoord(imgY, snapH, offY, true);
+
+    selectedImageArea.ex = finalX * image.zoom;
+    selectedImageArea.ey = finalY * image.zoom;
 
     selectedImageArea.isComplete = true;
     setRedZoneSize(selectedImageArea);

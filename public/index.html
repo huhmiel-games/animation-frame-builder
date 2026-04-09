@@ -66,19 +66,23 @@
             </li>
             <!-- Grid size (grid-width, grid-height, grid-offx, and grid-offy)-->
             <li>
-                <label class="inline-label text-light" for="grid-width" title="image height in pixels">Grid-width</label>
+                <label class="inline-label text-light" for="grid-snap" title="image height in pixels">Grid</label>
+                <input class="text-light" value="check" type="checkbox" id="grid-snap">
+            </li>
+            <li>
+                <label class="inline-label text-light" for="grid-width" title="image height in pixels">W</label>
                 <input class="image-offset text-light" value="48" type="number" id="grid-width">
             </li>
             <li>
-                <label class="inline-label text-light" for="grid-height" title="image height in pixels">Grid-height</label>
+                <label class="inline-label text-light" for="grid-height" title="image height in pixels">H</label>
                 <input class="image-offset text-light" value="48" type="number" id="grid-height">
             </li>
             <li>
-                <label class="inline-label text-light" for="grid-offx" title="image height in pixels">Grid-offx</label>
+                <label class="inline-label text-light" for="grid-offx" title="image height in pixels">OX</label>
                 <input class="image-offset text-light" value="0" type="number" id="grid-offx">
             </li>
             <li>
-                <label class="inline-label text-light" for="grid-offy" title="image height in pixels">Grid-offy</label>
+                <label class="inline-label text-light" for="grid-offy" title="image height in pixels">OY</label>
                 <input class="image-offset text-light" value="0" type="number" id="grid-offy">
             </li>
             <!-- Frame size -->
@@ -91,7 +95,7 @@
                 <input class="image-offset text-light" value="256" type="number" id="height">
             </li>
             <!-- Save tileset -->
-            <li >
+            <li>
                 <button id="save-tileset" title="Save tileset">
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5"
                         viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
@@ -176,7 +180,8 @@
             </a>
             <h3>Spritesheet-Preparer </h3>
             <strong>@huhmiel-games 2023</strong>
-            <p>Spritesheet-Preparer is a simple and easy to use graphics tool that help you creates spritesheet from atlas without json.
+            <p>Spritesheet-Preparer is a simple and easy to use graphics tool that help you creates spritesheet from
+                atlas without json.
                 images.<br />
                 <br />
                 <strong>Usage: </strong><br />

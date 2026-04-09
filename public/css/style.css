@@ -98,6 +98,9 @@ ul li button {
 #tilesetCanvas {
     flex: 1;
     overflow: auto;
+    background-image: url("/assets/grid-2.png");
+    background-repeat: repeat;
+    background-blend-mode: luminosity;
 }
 
 .right-bottom {
