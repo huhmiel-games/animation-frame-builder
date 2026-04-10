@@ -106,7 +106,6 @@ ul li button {
 .right-bottom {
     height: 50%;
     margin: 0;
-    /* padding: 1rem; */
     background-color: #11191f;
     display: flex;
     flex-direction: column;
