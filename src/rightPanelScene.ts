@@ -85,6 +85,11 @@ export class RightPanelScene extends Phaser.Scene
                 ctx.drawImage(img, offsetX, offsetY);
                 canvasTexture.refresh();
 
+                // If the sprite is currently displaying this frame, update its texture
+                if (this.sprite && this.sprite.texture.key === key) {
+                    this.sprite.setTexture(key);
+                }
+
                 if (idx !== undefined)
                 {
                     this.frames[idx].texture = canvasTexture;
@@ -134,6 +139,7 @@ export class RightPanelScene extends Phaser.Scene
     {
         const frameRate = this.anim?.frameRate || 8;
         const yoyo = this.anim?.yoyo || false;
+        let isPlaying = this.sprite?.anims.isPlaying;
 
         if (this.anims.exists('anim'))
         {
@@ -170,8 +176,11 @@ export class RightPanelScene extends Phaser.Scene
             yoyo: yoyo
         }) as Phaser.Animations.Animation;
 
-        this.sprite?.play('anim');
-        this.playBtn.innerHTML = playButtonSVG;
+        if (isPlaying)
+        {
+            this.sprite?.anims.play('anim');
+            this.playBtn.innerHTML = playButtonSVG;
+        }
     }
 
     public toggleFrame(idx: number, enabled: boolean)
@@ -285,7 +294,7 @@ export class RightPanelScene extends Phaser.Scene
         {
             frameName = frameName.padStart(frameName.length + 1, '_');
         }
-        
+
         this.sprite?.setTexture(key, 0);
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {
