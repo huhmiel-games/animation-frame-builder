@@ -274,7 +274,7 @@ export class App
         const height = this.grid.isEnabled ? this.grid.height : 8;
         const offX = this.grid.isEnabled ? this.grid.offsetX : 0;
         const offY = this.grid.isEnabled ? this.grid.offsetY : 0;
-        const color = this.grid.isEnabled ? "rgb(255, 0, 195)" : "rgba(255, 0, 195, 0.35)";
+        const color = "rgba(255, 0, 195, 0.35)";
 
         this.drawGrid(gridCtx, width, height, offX, offY, color);
     }
