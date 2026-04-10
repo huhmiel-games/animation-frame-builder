@@ -10,6 +10,7 @@ export class RightPanelScene extends Phaser.Scene
     animFrames: Phaser.Types.Animations.AnimationFrame[] = [];
     count: number = 0;
     enabledFrames: boolean[] = [];
+    frameNames: string[] = [];
     playBtn: HTMLButtonElement;
 
     constructor()
@@ -94,6 +95,7 @@ export class RightPanelScene extends Phaser.Scene
                 const newFrame = this.animFrames.at(-1);
                 if (!newFrame) throw new Error("Texture creation failed");
                 this.enabledFrames.push(true);
+                this.frameNames.push("");
                 this.rebuildAnimation();
                 this.sprite.setTexture(`img_${this.count}`, 0);
                 this.count += 1;
@@ -166,6 +168,7 @@ export class RightPanelScene extends Phaser.Scene
         [this.images[idx], this.images[targetIdx]] = [this.images[targetIdx], this.images[idx]];
         [this.imagesUri[idx], this.imagesUri[targetIdx]] = [this.imagesUri[targetIdx], this.imagesUri[idx]];
         [this.enabledFrames[idx], this.enabledFrames[targetIdx]] = [this.enabledFrames[targetIdx], this.enabledFrames[idx]];
+        [this.frameNames[idx], this.frameNames[targetIdx]] = [this.frameNames[targetIdx], this.frameNames[idx]];
 
         this.updateTextureKeys();
         this.rebuildAnimation();
@@ -201,6 +204,7 @@ export class RightPanelScene extends Phaser.Scene
     {
         const name = (document.getElementById('name') as HTMLInputElement).value || 'img';
         const key = this.animFrames[idx].key;
+        const frameName = this.frameNames[idx] || '';
         this.sprite.setTexture(key, 0);
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {
@@ -211,7 +215,7 @@ export class RightPanelScene extends Phaser.Scene
             {
                 let a = document.createElement('a');
                 a.href = window.URL.createObjectURL(xhr.response);
-                a.download = `${name}_${idx}`;
+                a.download = `${name}_${frameName}_${idx}`;
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
@@ -237,6 +241,7 @@ export class RightPanelScene extends Phaser.Scene
         this.imagesUri.splice(idx, 1);
         this.animFrames.splice(idx, 1);
         this.enabledFrames.splice(idx, 1);
+        this.frameNames.splice(idx, 1);
         this.count -= 1;
 
         this.updateTextureKeys();

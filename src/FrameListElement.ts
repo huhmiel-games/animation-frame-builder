@@ -10,6 +10,7 @@ export class FrameListElement
     offsetXInput: HTMLInputElement;
     offsetYInput: HTMLInputElement;
     enabledInput: HTMLInputElement;
+    nameInput: HTMLInputElement;
     framesInstance: FrameListElement[];
 
     constructor(id: number, dataUri: string, scene: RightPanelScene, framesInstance: FrameListElement[])
@@ -34,10 +35,13 @@ export class FrameListElement
         li.id = this.id.toString();
         li.classList.add('frame-list')
 
-        const offsetXLabel = this.createLabel('frame offset x in pixels', 'OffsetX: ', ['inline-label', 'text-light'], 'offset-x');
-        const offsetYLabel = this.createLabel('frame offset y in pixels', 'OffsetY: ', ['inline-label', 'text-light'], 'offset-y');
+        const offsetXLabel = this.createLabel('frame offset x in pixels', 'X: ', ['inline-label', 'text-light'], 'offset-x');
+        const offsetYLabel = this.createLabel('frame offset y in pixels', 'Y: ', ['inline-label', 'text-light'], 'offset-y');
         this.offsetXInput = this.createInputNumber(`offsetX_${this.id}`, ['input-number', 'text-light'], 'offset-x');
         this.offsetYInput = this.createInputNumber(`offsetY_${this.id}`, ['input-number', 'text-light'], 'offset-y');
+
+        const nameLabel = this.createLabel('animation name', 'Anim: ', ['inline-label', 'text-light'], 'frame-name');
+        this.nameInput = this.createInputText(`name_${this.id}`, ['input-name', 'text-light'], 'frame-name');
 
         this.enabledInput = document.createElement('input');
         this.enabledInput.type = 'checkbox';
@@ -73,14 +77,17 @@ export class FrameListElement
 
         const spanX = document.createElement('span');
         const spanY = document.createElement('span');
+        const spanName = document.createElement('span');
         spanX.appendChild(offsetXLabel);
         spanX.appendChild(this.offsetXInput);
         spanY.appendChild(offsetYLabel);
         spanY.appendChild(this.offsetYInput);
+        spanName.appendChild(nameLabel);
+        spanName.appendChild(this.nameInput);
         li.textContent = `${this.id}-   `
         li.appendChild(spanEnabled);
         li.appendChild(spanUpDownButtons);
-        //li.appendChild(spanDown);
+        li.appendChild(spanName);
         li.appendChild(spanX);
         li.appendChild(spanY);
         li.appendChild(deleteBtn);
@@ -107,6 +114,19 @@ export class FrameListElement
         inputNumber.value = '0';
         inputNumber.addEventListener('input', this.handleChange)
         return inputNumber;
+    }
+
+    private createInputText(id: string, classList: string[], name: string): HTMLInputElement
+    {
+        const inputText = document.createElement('input');
+        inputText.type = 'text';
+        classList.forEach(str => inputText.classList.add(str));
+        inputText.id = name + "_" + this.id;
+        inputText.value = '';
+        inputText.addEventListener('input', () => {
+            this.scene.frameNames[this.id] = inputText.value;
+        });
+        return inputText;
     }
 
     private handleChange(event)

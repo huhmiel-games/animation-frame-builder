@@ -184,6 +184,11 @@ input:not([type=checkbox], [type=radio]), select, textarea {
     padding: 1px !important;
 }
 
+.input-name {
+    width: 6rem !important;
+    padding: 1px !important;
+}
+
 :where(dl, ol, ul) {
     padding-right: 0;
     padding-left: 0;
