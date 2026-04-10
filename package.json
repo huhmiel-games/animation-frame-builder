@@ -1,10 +1,10 @@
 {
-  "name": "spritesheet-preparer",
+  "name": "animation-frame-builder",
   "scripts": {
     "start": "node ./esbuild/dev.cjs",
-    "build": "node ./esbuild/build.cjs & cp -r ./public/* ./build/ ",
+    "build": "node ./esbuild/build.cjs && cp -r ./public/* ./build/ ",
     "build-packages": "grunt",
-    "build-deb": "node-deb -- map2tileset dist/map2tileset/linux64/"
+    "build-deb": "node-deb -- map2tileset dist/AnimationFrameBuilder/linux64/"
   },
   "dependencies": {
     "phaser": "^3.60.0"

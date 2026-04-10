@@ -26,8 +26,6 @@ export type TTileset = {
     height: number
     isLoaded: boolean,
     zoom: number,
-    undos: [],
-    redos: []
 }
 
 export { TGrid };

@@ -9,7 +9,7 @@
     <script defer type="module" src="script.js"></script>
     <meta name="description"
         content="huhmiel-games - Map2Tileset is a simple and easy to use graphics tool that help you creates tilesets from map images">
-    <title>Spritesheet-Preparer</title>
+    <title>Animation Frame Builder</title>
 </head>
 
 <body>
@@ -41,29 +41,6 @@
                 </label>
                 <input class="secondary none" type="file" id="open-image" src="" alt="">
             </li>
-            <!-- undo redo -->
-            <li>
-                <button id="undo-btn" disabled title="Undo">
-                    <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" viewBox="0 0 24 24"
-                        stroke-width="1.5" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
-                        <path d="M4.5 8H15s0 0 0 0 5 0 5 4.706C20 18 15 18 15 18H6.286" stroke="#eeeeee"
-                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                        <path d="M7.5 11.5L4 8l3.5-3.5" stroke="#eeeeee" stroke-width="1.5" stroke-linecap="round"
-                            stroke-linejoin="round"></path>
-                    </svg>
-                </button>
-            </li>
-            <li>
-                <button id="redo-btn" disabled title="Redo">
-                    <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" viewBox="0 0 24 24"
-                        stroke-width="1.5" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
-                        <path d="M19.5 8H9s0 0 0 0-5 0-5 4.706C4 18 9 18 9 18h8.714" stroke="#eeeeee" stroke-width="1.5"
-                            stroke-linecap="round" stroke-linejoin="round"></path>
-                        <path d="M16.5 11.5L20 8l-3.5-3.5" stroke="#eeeeee" stroke-width="1.5" stroke-linecap="round"
-                            stroke-linejoin="round"></path>
-                    </svg>
-                </button>
-            </li>
             <!-- Grid size (grid-width, grid-height, grid-offx, and grid-offy)-->
             <li>
                 <label class="inline-label text-light" for="grid-snap" title="image height in pixels">Grid</label>
@@ -71,28 +48,28 @@
             </li>
             <li>
                 <label class="inline-label text-light" for="grid-width" title="image height in pixels">W</label>
-                <input class="image-offset text-light" value="48" type="number" id="grid-width">
+                <input class="input-number text-light" value="48" type="number" id="grid-width">
             </li>
             <li>
                 <label class="inline-label text-light" for="grid-height" title="image height in pixels">H</label>
-                <input class="image-offset text-light" value="48" type="number" id="grid-height">
+                <input class="input-number text-light" value="48" type="number" id="grid-height">
             </li>
             <li>
                 <label class="inline-label text-light" for="grid-offx" title="image height in pixels">OX</label>
-                <input class="image-offset text-light" value="0" type="number" id="grid-offx">
+                <input class="input-number text-light" value="0" type="number" id="grid-offx">
             </li>
             <li>
                 <label class="inline-label text-light" for="grid-offy" title="image height in pixels">OY</label>
-                <input class="image-offset text-light" value="0" type="number" id="grid-offy">
+                <input class="input-number text-light" value="0" type="number" id="grid-offy">
             </li>
             <!-- Frame size -->
             <li class="right">
                 <label class="inline-label text-light" for="width" title="image width in pixels">Width</label>
-                <input class="image-offset text-light" value="256" type="number" id="width">
+                <input class="input-number text-light" value="256" type="number" id="width">
             </li>
             <li>
                 <label class="inline-label text-light" for="height" title="image height in pixels">Height</label>
-                <input class="image-offset text-light" value="256" type="number" id="height">
+                <input class="input-number text-light" value="256" type="number" id="height">
             </li>
             <!-- Save tileset -->
             <li>
@@ -178,18 +155,18 @@
         <article>
             <a href="#close" id="close-about-btn" aria-label="Close" class="close" data-target="about-modal">
             </a>
-            <h3>Spritesheet-Preparer </h3>
+            <h3>Animation Frame Builder</h3>
             <strong>@huhmiel-games 2023</strong>
-            <p>Spritesheet-Preparer is a simple and easy to use graphics tool that help you creates spritesheet from
+            <p>Animation Frame Builder is a simple and easy to use graphics tool that help you creates frames from
                 atlas without json.
-                images.<br />
+                <br />
                 <br />
                 <strong>Usage: </strong><br />
                 Open an image on the left panel.<br />
-                Open a tileset on the right panel.<br />
-                Select an area with the mouse on the left image (offset the image if needed), copy is automatic, just
-                click on your tileset to paste it.<br />
-                Repeat ...
+                Select an area with the mouse on the left image (default snap grid to 8px), the selection is copied to a new frame on the right panel.<br />
+                Or enable the grid and adjust its size and offset, just clic a cell and the selection is copied to a new frame on the right panel.<br />
+                <br />
+                Enjoy ...
             </p>
             <p>
                 <strong>Commands: </strong><br />
@@ -201,7 +178,7 @@
                         <path d="M12 2v6.4a.6.6 0 01-.6.6H4" stroke="#000000" stroke-width="1.5" stroke-linecap="round">
                         </path>
                     </svg>
-                </kbd>Select or Paste<br />
+                </kbd>Select<br />
                 <kbd>
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5"
                         viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
@@ -235,12 +212,6 @@
                             fill="#000000"></path>
                     </svg>
                 </kbd>Zoom<br />
-                <kbd>Ctrl + A</kbd>Select all<br />
-                <kbd>Ctrl + Z</kbd>Undo<br />
-                <kbd>Ctrl + Y</kbd>Redo<br />
-                <kbd>Ctrl + S</kbd>Save<br />
-                <kbd>X</kbd>Flip selection horizontally<br />
-                <kbd>Y</kbd>Flip selection vertically<br />
             </p>
             <strong>Enjoy... </strong>
             </p>
