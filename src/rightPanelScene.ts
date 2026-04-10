@@ -1,16 +1,13 @@
 import Phaser from "phaser";
 import { pauseButtonSVG, playButtonSVG } from "./constant";
+import { TFrame } from "./models/TFrame";
 
 export class RightPanelScene extends Phaser.Scene
 {
-    images: Phaser.Textures.CanvasTexture[] = [];
-    imagesUri: string[] = [];
+    frames: TFrame[] = [];
     sprite: Phaser.GameObjects.Sprite | null = null;
     anim: Phaser.Animations.Animation;
-    animFrames: Phaser.Types.Animations.AnimationFrame[] = [];
     count: number = 0;
-    enabledFrames: boolean[] = [];
-    frameNames: string[] = [];
     playBtn: HTMLButtonElement;
 
     constructor()
@@ -31,7 +28,7 @@ export class RightPanelScene extends Phaser.Scene
     {
         const anim = this.anims.create({
             key: 'anim',
-            frames: this.animFrames,
+            frames: [],
             frameRate: 8,
             repeat: -1,
         });
@@ -73,12 +70,13 @@ export class RightPanelScene extends Phaser.Scene
                 ctx.drawImage(img, offsetX, offsetY);
                 canvasTexture.refresh();
 
-                this.images[idx] = (canvasTexture);
-                this.animFrames[idx] = { key: `img_${idx}`, frame: 0 };
+                this.frames[idx].texture = canvasTexture;
+                this.frames[idx].animFrame = { key: `img_${idx}`, frame: 0 };
+
                 this.anim.removeFrameAt(idx);
-                const modifiedFrame = this.animFrames.at(idx);
+                const modifiedFrame = this.frames[idx].animFrame;
                 if (!modifiedFrame) throw new Error("Texture modification failed");
-                this.sprite.setTexture(`img_${idx}`, 0);
+                this.sprite?.setTexture(`img_${idx}`, 0);
                 this.anim.addFrameAt(idx, [modifiedFrame]);
             }
             else
@@ -90,16 +88,17 @@ export class RightPanelScene extends Phaser.Scene
                 ctx.drawImage(img, offsetX, offsetY);
                 canvasTexture.refresh();
 
-                this.images.push(canvasTexture);
-                this.animFrames.push({ key: `img_${this.count}`, frame: 0 });
-                const newFrame = this.animFrames.at(-1);
-                if (!newFrame) throw new Error("Texture creation failed");
-                this.enabledFrames.push(true);
-                this.frameNames.push("");
+                this.frames.push({
+                    texture: canvasTexture,
+                    uri: imageURI,
+                    animFrame: { key: `img_${this.count}`, frame: 0 },
+                    isEnabled: true,
+                    name: ""
+                });
+
                 this.rebuildAnimation();
-                this.sprite.setTexture(`img_${this.count}`, 0);
+                this.sprite?.setTexture(`img_${this.count}`, 0);
                 this.count += 1;
-                this.imagesUri.push(imageURI);
             }
         }, { once: true });
 
@@ -133,7 +132,7 @@ export class RightPanelScene extends Phaser.Scene
             this.anims.remove('anim');
         }
 
-        const framesToPlay = this.animFrames.filter((_, i) => this.enabledFrames[i]);
+        const framesToPlay = this.frames.filter(f => f.isEnabled).map(f => f.animFrame);
         if (framesToPlay.length === 0)
         {
             this.sprite?.anims.stop();
@@ -155,20 +154,17 @@ export class RightPanelScene extends Phaser.Scene
 
     public toggleFrame(idx: number, enabled: boolean)
     {
-        this.enabledFrames[idx] = enabled;
+        this.frames[idx].isEnabled = enabled;
         this.rebuildAnimation();
     }
 
     public moveFrame(idx: number, direction: 'up' | 'down')
     {
         const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-        if (targetIdx < 0 || targetIdx >= this.animFrames.length) return;
+        if (targetIdx < 0 || targetIdx >= this.frames.length) return;
 
         // Swap data in arrays
-        [this.images[idx], this.images[targetIdx]] = [this.images[targetIdx], this.images[idx]];
-        [this.imagesUri[idx], this.imagesUri[targetIdx]] = [this.imagesUri[targetIdx], this.imagesUri[idx]];
-        [this.enabledFrames[idx], this.enabledFrames[targetIdx]] = [this.enabledFrames[targetIdx], this.enabledFrames[idx]];
-        [this.frameNames[idx], this.frameNames[targetIdx]] = [this.frameNames[targetIdx], this.frameNames[idx]];
+        [this.frames[idx], this.frames[targetIdx]] = [this.frames[targetIdx], this.frames[idx]];
 
         this.updateTextureKeys();
         this.rebuildAnimation();
@@ -177,15 +173,15 @@ export class RightPanelScene extends Phaser.Scene
     private updateTextureKeys()
     {
         const tempPrefix = `reorder_${Date.now()}_`;
-        this.images.forEach((tex) =>
+        this.frames.forEach((f) =>
         {
-            this.textures.renameTexture(tex.key, tempPrefix + tex.key);
+            this.textures.renameTexture(f.texture.key, tempPrefix + f.texture.key);
         });
 
-        this.images.forEach((tex, i) =>
+        this.frames.forEach((f, i) =>
         {
-            this.textures.renameTexture(tex.key, `img_${i}`);
-            this.animFrames[i] = { key: `img_${i}`, frame: 0 };
+            this.textures.renameTexture(f.texture.key, `img_${i}`);
+            f.animFrame = { key: `img_${i}`, frame: 0 };
         });
     }
 
@@ -197,19 +193,27 @@ export class RightPanelScene extends Phaser.Scene
 
     public offsetXY(id: number, x: number, y: number)
     {
-        this.loadImage(this.imagesUri[id], x, y, id);
+        this.loadImage(this.frames[id].uri, x, y, id);
     }
 
     public saveAssets(idx: number)
     {
+        if (idx >= this.frames.length) return;
+
+        // Skip disabled frames
+        if (!this.frames[idx].isEnabled) {
+            this.saveAssets(idx + 1);
+            return;
+        }
+
         const name = (document.getElementById('name') as HTMLInputElement).value || 'img';
-        const key = this.animFrames[idx].key;
-        let frameName = this.frameNames[idx] || '';
+        const key = this.frames[idx].animFrame.key;
+        let frameName = this.frames[idx].name || '';
         if (frameName)
         {
             frameName = frameName.padStart(frameName.length+1, '_');
         }
-        this.sprite.setTexture(key, 0);
+        this.sprite?.setTexture(key, 0);
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {
             const texture = this.game.canvas.toDataURL('image/png');
@@ -224,7 +228,7 @@ export class RightPanelScene extends Phaser.Scene
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                if (idx < this.animFrames.length - 1)
+                if (idx < this.frames.length - 1)
                 {
                     this.saveAssets(idx + 1);
                 }
@@ -241,19 +245,15 @@ export class RightPanelScene extends Phaser.Scene
         playBtn.innerHTML = pauseButtonSVG;
         this.anim.removeFrameAt(idx);
         this.textures.removeKey(`img_${idx}`);
-        this.images.splice(idx, 1);
-        this.imagesUri.splice(idx, 1);
-        this.animFrames.splice(idx, 1);
-        this.enabledFrames.splice(idx, 1);
-        this.frameNames.splice(idx, 1);
+        this.frames.splice(idx, 1);
         this.count -= 1;
 
         this.updateTextureKeys();
         this.rebuildAnimation();
 
-        if (this.animFrames.length === 0)
+        if (this.frames.length === 0)
         {
-            this.sprite.setTexture('_DEFAULT');
+            this.sprite?.setTexture('_DEFAULT');
         }
     }
 }

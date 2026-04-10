@@ -123,7 +123,7 @@ export class FrameListElement
         inputText.id = name + "_" + this.id;
         inputText.value = '';
         inputText.addEventListener('input', () => {
-            this.scene.frameNames[this.id] = inputText.value;
+            this.scene.frames[this.id].name = inputText.value;
         });
         return inputText;
     }
