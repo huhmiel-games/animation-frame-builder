@@ -8,7 +8,9 @@ export class RightPanelScene extends Phaser.Scene
     sprite: Phaser.GameObjects.Sprite | null = null;
     anim: Phaser.Animations.Animation;
     count: number = 0;
+    selectedAnimationName: string | null = null;
     playBtn: HTMLButtonElement;
+    selectAnimElement: HTMLSelectElement;
 
     constructor()
     {
@@ -22,6 +24,8 @@ export class RightPanelScene extends Phaser.Scene
         this.saveAssets = this.saveAssets.bind(this);
         this.toggleFrame = this.toggleFrame.bind(this);
         this.moveFrame = this.moveFrame.bind(this);
+        this.selectAnimElement = document.getElementById('select-anim') as HTMLSelectElement;
+        this.handleAnimationSelectChange = this.handleAnimationSelectChange.bind(this);
     }
 
     public preload()
@@ -42,6 +46,8 @@ export class RightPanelScene extends Phaser.Scene
     public create()
     {
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleZoom);
+        this.selectAnimElement.addEventListener('change', this.handleAnimationSelectChange);
+        this.updateAnimationSelect(); // Initial population of the select dropdown
     }
 
     public update(time: number, delta: number): void
@@ -78,6 +84,7 @@ export class RightPanelScene extends Phaser.Scene
                 if (!modifiedFrame) throw new Error("Texture modification failed");
                 this.sprite?.setTexture(`img_${idx}`, 0);
                 this.anim.addFrameAt(idx, [modifiedFrame]);
+                this.updateAnimationSelect();
             }
             else
             {
@@ -99,6 +106,7 @@ export class RightPanelScene extends Phaser.Scene
                 this.rebuildAnimation();
                 this.sprite?.setTexture(`img_${this.count}`, 0);
                 this.count += 1;
+                this.updateAnimationSelect();
             }
         }, { once: true });
 
@@ -132,7 +140,14 @@ export class RightPanelScene extends Phaser.Scene
             this.anims.remove('anim');
         }
 
-        const framesToPlay = this.frames.filter(f => f.isEnabled).map(f => f.animFrame);
+        let framesToPlay: Phaser.Types.Animations.AnimationFrame[];
+
+        if (this.selectedAnimationName) {
+            framesToPlay = this.frames.filter(f => f.isEnabled && f.name === this.selectedAnimationName).map(f => f.animFrame);
+        } else {
+            framesToPlay = []; // No animation selected, so no frames to play
+        }
+
         if (framesToPlay.length === 0)
         {
             this.sprite?.anims.stop();
@@ -147,7 +162,7 @@ export class RightPanelScene extends Phaser.Scene
             repeat: -1,
             yoyo: yoyo
         }) as Phaser.Animations.Animation;
-
+        
         this.sprite?.play('anim');
         this.playBtn.innerHTML = playButtonSVG;
     }
@@ -194,6 +209,47 @@ export class RightPanelScene extends Phaser.Scene
     public offsetXY(id: number, x: number, y: number)
     {
         this.loadImage(this.frames[id].uri, x, y, id);
+    }
+
+    public updateAnimationSelect() {
+        const animationNames = new Set<string>();
+        this.frames.forEach(frame => {
+            if (frame.name) { // Only add non-empty names
+                animationNames.add(frame.name);
+            }
+        });
+
+        // Store current selection before clearing
+        const previousSelection = this.selectedAnimationName;
+
+        // Clear existing options except the default "Select"
+        while (this.selectAnimElement.options.length > 1) {
+            this.selectAnimElement.remove(1);
+        }
+
+        const sortedNames = Array.from(animationNames).sort();
+        let newSelection = null;
+
+        sortedNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            this.selectAnimElement.appendChild(option);
+            if (previousSelection === name) {
+                newSelection = name; // Keep the previous selection if it still exists
+            }
+        });
+
+        this.selectedAnimationName = newSelection;
+        this.selectAnimElement.value = this.selectedAnimationName || ""; // Set the dropdown value
+
+        this.rebuildAnimation();
+    }
+
+    private handleAnimationSelectChange(event: Event) {
+        const target = event.target as HTMLSelectElement;
+        this.selectedAnimationName = target.value || null; // If value is empty string, set to null
+        this.rebuildAnimation();
     }
 
     public saveAssets(idx: number)
@@ -250,6 +306,7 @@ export class RightPanelScene extends Phaser.Scene
 
         this.updateTextureKeys();
         this.rebuildAnimation();
+        this.updateAnimationSelect();
 
         if (this.frames.length === 0)
         {

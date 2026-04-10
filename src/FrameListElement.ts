@@ -124,6 +124,7 @@ export class FrameListElement
         inputText.value = '';
         inputText.addEventListener('input', () => {
             this.scene.frames[this.id].name = inputText.value;
+            this.scene.updateAnimationSelect(); // New: Update the animation select dropdown
         });
         return inputText;
     }
