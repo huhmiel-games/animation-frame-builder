@@ -126,6 +126,7 @@ ul li button {
     position: absolute;
     background-color: #dc143c80;
     z-index: 2;
+    pointer-events: none;
 }
 
 .menu {

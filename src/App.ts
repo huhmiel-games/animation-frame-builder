@@ -91,6 +91,7 @@ export class App
         this.getGridSnappedCoord = this.getGridSnappedCoord.bind(this);
         this.onImageCanvasMouseDown = this.onImageCanvasMouseDown.bind(this);
         this.onImageCanvasMouseUp = this.onImageCanvasMouseUp.bind(this);
+        this.handleMouseMove = this.handleMouseMove.bind(this);
         this.downloadTilesetAsImage = this.downloadTilesetAsImage.bind(this);
         this.startPhaser = this.startPhaser.bind(this);
         this.playOrPause = this.playOrPause.bind(this);
@@ -110,6 +111,12 @@ export class App
         this.imageCanvas.addEventListener('mousedown', this.onImageCanvasMouseDown, false);
         this.imageCanvas.addEventListener('mouseup', this.onImageCanvasMouseUp, false);
         this.imageCanvas.addEventListener('contextmenu', this.resetSelection, false);
+        this.leftPanel.addEventListener('mouseleave', (event) =>
+        {
+            if (this.selectedImageArea.isComplete || this.selectedImageArea.isDirty) return;
+
+            this.leftPanel.removeEventListener('mousemove', this.handleMouseMove);
+        });
         this.saveTilesetBtn.addEventListener('click', this.downloadTilesetAsImage, false);
         this.widthInput.addEventListener('change', this.startPhaser, false);
         this.heightInput.addEventListener('change', this.startPhaser, false);
@@ -346,6 +353,38 @@ export class App
         return snapped * step + offset;
     }
 
+     /**
+     * 
+     * @param event handleMouseMove never worked so we return, will be fixed later
+     * @returns 
+     */
+    public handleMouseMove(event: MouseEvent): void
+    {
+        if (
+            this.selectedImageArea.isDirty === false ||
+            this.image.isLoaded === false ||
+            this.selectedImageArea.isComplete === true
+        ) return;
+
+        // Convert display pixels to image pixels
+        const imgX = (event.offsetX / this.image.zoom) - this.image.offsetX;
+        const imgY = (event.offsetY / this.image.zoom) - this.image.offsetY;
+
+        // Snap settings: use custom grid if enabled, otherwise fallback to 8px grid
+        const snapW = this.grid.isEnabled ? this.grid.width : 8;
+        const snapH = this.grid.isEnabled ? this.grid.height : 8;
+        const offX = this.grid.isEnabled ? this.grid.offsetX : 0;
+        const offY = this.grid.isEnabled ? this.grid.offsetY : 0;
+
+        const finalX = this.getGridSnappedCoord(imgX, snapW, offX, true);
+        const finalY = this.getGridSnappedCoord(imgY, snapH, offY, true);
+
+        this.selectedImageArea.ex = finalX * this.image.zoom;
+        this.selectedImageArea.ey = finalY * this.image.zoom;
+
+        this.setRedZoneSize(this.selectedImageArea);
+    }
+
     onImageCanvasMouseDown(event: MouseEvent)
     {
         if (this.image.isLoaded === false || event.button !== 0) return;
@@ -372,8 +411,11 @@ export class App
         this.selectedImageArea.sy = finalY * this.image.zoom;
 
         this.selectedImageArea.isDirty = true;
+        this.redZone.style.width = '0px';
+        this.redZone.style.height = '0px';
 
         this.placeRedZone(this.selectedImageArea.sx, this.selectedImageArea.sy);
+        this.imageCanvas.addEventListener('mousemove', this.handleMouseMove, { once: false });
     }
 
     onImageCanvasMouseUp(event: MouseEvent)
@@ -404,6 +446,7 @@ export class App
         this.selectedImageArea.isComplete = true;
         this.setRedZoneSize(this.selectedImageArea);
         this.copy();
+        this.imageCanvas.removeEventListener('mousemove', this.handleMouseMove);
     }
 
     downloadTilesetAsImage()
@@ -416,16 +459,14 @@ export class App
     placeRedZone(x_pos: string | number, y_pos: string | number)
     {
         if (this.selectedImageArea.isComplete) return;
-        this.redZone.style.width = '0px';
-        this.redZone.style.height = '0px';
         this.redZone.style.left = x_pos + 'px';
         this.redZone.style.top = y_pos + 'px';
     }
 
     setRedZoneSize(zone: TSelectedImageArea)
     {
-        const x = zone.ex - zone.sx;
-        const y = zone.ey - zone.sy;
+        const x = Math.abs(zone.ex - zone.sx);
+        const y = Math.abs(zone.ey - zone.sy);
 
         if (this.redZone.style.width !== x + 'px')
         {
