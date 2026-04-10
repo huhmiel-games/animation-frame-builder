@@ -183,12 +183,26 @@ export class App
     }
 
     // Settings
-    openModal(event)
+    openModal(event: Event | string)
     {
-        event.preventDefault();
-        const modal = document.getElementById(event.currentTarget.getAttribute("data-target")) as HTMLDialogElement;
-        modal.open = true;
-        this.visibleModal = modal;
+        let id: string | null = null;
+
+        if (typeof event === 'string')
+        {
+            id = event;
+        } 
+        else
+        {
+            event.preventDefault();
+            id = (event.currentTarget as HTMLElement).getAttribute("data-target");
+        }
+
+        const modal = id ? document.getElementById(id) as HTMLDialogElement : null;
+        if (modal)
+        {
+            modal.open = true;
+            this.visibleModal = modal;
+        }
     }
 
     closeModal(event)

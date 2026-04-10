@@ -69,48 +69,44 @@ export class RightPanelScene extends Phaser.Scene
 
             img.addEventListener('load', () =>
             {
+                const key = idx !== undefined ? `img_${idx}` : `img_${this.count}`;
+
+                // Suppression de l'ancienne texture si elle existe pour éviter la collision de clé
+                if (this.textures.exists(key))
+                {
+                    this.textures.removeKey(key);
+                }
+
+                const canvasTexture = this.textures.createCanvas(key, this.scale.width, this.scale.height);
+                if (!canvasTexture) throw new Error("Canvas texture failed");
+
+                const ctx = canvasTexture.getContext();
+                ctx.drawImage(img, offsetX, offsetY);
+                canvasTexture.refresh();
+
                 if (idx !== undefined)
                 {
-                    this.textures.removeKey(`img_${idx}`);
-                    const canvasTexture = this.textures.createCanvas(`img_${idx}`, this.scale.width, this.scale.height);
-                    if (!canvasTexture) throw new Error("Canvas texture failed");
-
-                    const ctx = canvasTexture.getContext();
-                    ctx.drawImage(img, offsetX, offsetY);
-                    canvasTexture.refresh();
-
                     this.frames[idx].texture = canvasTexture;
-                    this.frames[idx].animFrame = { key: `img_${idx}`, frame: 0 };
+                    this.frames[idx].animFrame = { key: key, frame: 0 };
                     this.frames[idx].offsetX = offsetX;
                     this.frames[idx].offsetY = offsetY;
-
-                    this.updateAnimationSelect();
-                    resolve(idx);
                 }
                 else
                 {
-                    const canvasTexture = this.textures.createCanvas(`img_${this.count}`, this.scale.width, this.scale.height);
-                    if (!canvasTexture) throw new Error("Canvas texture failed");
-
-                    const ctx = canvasTexture.getContext();
-                    ctx.drawImage(img, offsetX, offsetY);
-                    canvasTexture.refresh();
-
                     this.frames.push({
                         texture: canvasTexture,
                         uri: imageURI,
-                        animFrame: { key: `img_${this.count}`, frame: 0 },
+                        animFrame: { key: key, frame: 0 },
                         isEnabled: true,
                         name: "",
                         offsetX: offsetX,
                         offsetY: offsetY
                     });
-
-                    const currentId = this.count;
                     this.count += 1;
-                    this.updateAnimationSelect();
-                    resolve(currentId);
                 }
+
+                this.updateAnimationSelect();
+                resolve(idx !== undefined ? idx : this.count - 1);
             }, { once: true });
 
             img.src = imageURI;

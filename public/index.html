@@ -43,7 +43,7 @@
             </li>
             <!-- Open Project -->
             <li>
-                <button id="open-project" title="Open project">
+                <button id="open-project" title="Open project" data-target="modal-projects">
                     <?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5"
                         viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000">
                         <path
@@ -179,6 +179,16 @@
             <img id="tileset" alt="" class="none" />
         </div>
     </div>
+
+    <dialog id="modal-projects">
+        <article>
+            <a href="#close" aria-label="Close" class="close" id="close-projects" data-target="modal-projects"></a>
+            <h3>Open project</h3>
+            <ul id="project-list-items" class="modal">
+                <!-- La liste sera injectée ici -->
+            </ul>
+        </article>
+    </dialog>
 
     <!-- About Modal -->
     <dialog id="about-modal">
