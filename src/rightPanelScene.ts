@@ -7,7 +7,7 @@ export class RightPanelScene extends Phaser.Scene
     frames: TFrame[] = [];
     sprite: Phaser.GameObjects.Sprite | null = null;
     anim: Phaser.Animations.Animation;
-    count: number = 0;
+    count = 0;
     selectedAnimationName: string | null = null;
     playBtn: HTMLButtonElement;
     selectAnimElement: HTMLSelectElement;
@@ -24,8 +24,9 @@ export class RightPanelScene extends Phaser.Scene
         this.saveAssets = this.saveAssets.bind(this);
         this.toggleFrame = this.toggleFrame.bind(this);
         this.moveFrame = this.moveFrame.bind(this);
-        this.selectAnimElement = document.getElementById('select-anim') as HTMLSelectElement;
         this.handleAnimationSelectChange = this.handleAnimationSelectChange.bind(this);
+
+        this.selectAnimElement = document.getElementById('select-anim') as HTMLSelectElement;
     }
 
     public preload()
@@ -47,6 +48,7 @@ export class RightPanelScene extends Phaser.Scene
     {
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleZoom);
         this.selectAnimElement.addEventListener('change', this.handleAnimationSelectChange);
+        this.selectedAnimationName = ""; // Default to "All Frames"
         this.updateAnimationSelect(); // Initial population of the select dropdown
     }
 
@@ -57,61 +59,58 @@ export class RightPanelScene extends Phaser.Scene
 
     public async loadImage(imageURI: string, offsetX: number = 0, offsetY: number = 0, idx?: number): Promise<number>
     {
-        const img = new Image();
+        return new Promise((resolve) => {
+            const img = new Image();
 
-        if (this.sprite === null)
-        {
-            this.sprite = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'wipSprite');
-        }
-
-        img.addEventListener('load', async () =>
-        {
-            if (idx !== undefined)
+            if (this.sprite === null)
             {
-                this.textures.removeKey(`img_${idx}`);
-                const canvasTexture = this.textures.createCanvas(`img_${idx}`, this.scale.width, this.scale.height);
-                if (!canvasTexture) throw new Error("Canvas texture failed");
-
-                const ctx = canvasTexture.getContext();
-                ctx.drawImage(img, offsetX, offsetY);
-                canvasTexture.refresh();
-
-                this.frames[idx].texture = canvasTexture;
-                this.frames[idx].animFrame = { key: `img_${idx}`, frame: 0 };
-
-                this.anim.removeFrameAt(idx);
-                const modifiedFrame = this.frames[idx].animFrame;
-                if (!modifiedFrame) throw new Error("Texture modification failed");
-                this.sprite?.setTexture(`img_${idx}`, 0);
-                this.anim.addFrameAt(idx, [modifiedFrame]);
-                this.updateAnimationSelect();
+                this.sprite = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'wipSprite');
             }
-            else
+
+            img.addEventListener('load', () =>
             {
-                const canvasTexture = this.textures.createCanvas(`img_${this.count}`, this.scale.width, this.scale.height);
-                if (!canvasTexture) throw new Error("Canvas texture failed");
+                if (idx !== undefined)
+                {
+                    this.textures.removeKey(`img_${idx}`);
+                    const canvasTexture = this.textures.createCanvas(`img_${idx}`, this.scale.width, this.scale.height);
+                    if (!canvasTexture) throw new Error("Canvas texture failed");
 
-                const ctx = canvasTexture.getContext();
-                ctx.drawImage(img, offsetX, offsetY);
-                canvasTexture.refresh();
+                    const ctx = canvasTexture.getContext();
+                    ctx.drawImage(img, offsetX, offsetY);
+                    canvasTexture.refresh();
 
-                this.frames.push({
-                    texture: canvasTexture,
-                    uri: imageURI,
-                    animFrame: { key: `img_${this.count}`, frame: 0 },
-                    isEnabled: true,
-                    name: ""
-                });
+                    this.frames[idx].texture = canvasTexture;
+                    this.frames[idx].animFrame = { key: `img_${idx}`, frame: 0 };
 
-                this.rebuildAnimation();
-                this.sprite?.setTexture(`img_${this.count}`, 0);
-                this.count += 1;
-                this.updateAnimationSelect();
-            }
-        }, { once: true });
+                    this.updateAnimationSelect();
+                    resolve(idx);
+                }
+                else
+                {
+                    const canvasTexture = this.textures.createCanvas(`img_${this.count}`, this.scale.width, this.scale.height);
+                    if (!canvasTexture) throw new Error("Canvas texture failed");
 
-        img.src = imageURI;
-        return idx || this.count;
+                    const ctx = canvasTexture.getContext();
+                    ctx.drawImage(img, offsetX, offsetY);
+                    canvasTexture.refresh();
+
+                    this.frames.push({
+                        texture: canvasTexture,
+                        uri: imageURI,
+                        animFrame: { key: `img_${this.count}`, frame: 0 },
+                        isEnabled: true,
+                        name: ""
+                    });
+
+                    const currentId = this.count;
+                    this.count += 1;
+                    this.updateAnimationSelect();
+                    resolve(currentId);
+                }
+            }, { once: true });
+
+            img.src = imageURI;
+        });
     }
 
     private handleZoom(event: Phaser.Input.Pointer)
@@ -142,7 +141,9 @@ export class RightPanelScene extends Phaser.Scene
 
         let framesToPlay: Phaser.Types.Animations.AnimationFrame[];
 
-        if (this.selectedAnimationName) {
+        if (this.selectedAnimationName === "" || this.selectedAnimationName === null) { // "All Frames" selected or default
+            framesToPlay = this.frames.filter(f => f.isEnabled).map(f => f.animFrame);
+        } else if (this.selectedAnimationName) { // A specific animation name is selected
             framesToPlay = this.frames.filter(f => f.isEnabled && f.name === this.selectedAnimationName).map(f => f.animFrame);
         } else {
             framesToPlay = []; // No animation selected, so no frames to play
@@ -211,44 +212,45 @@ export class RightPanelScene extends Phaser.Scene
         this.loadImage(this.frames[id].uri, x, y, id);
     }
 
-    public updateAnimationSelect() {
+    public updateAnimationSelect()
+    {
         const animationNames = new Set<string>();
-        this.frames.forEach(frame => {
-            if (frame.name) { // Only add non-empty names
-                animationNames.add(frame.name);
-            }
+        this.frames.forEach(frame =>
+        {
+            if (frame.name) animationNames.add(frame.name);
         });
 
-        // Store current selection before clearing
         const previousSelection = this.selectedAnimationName;
 
-        // Clear existing options except the default "Select"
-        while (this.selectAnimElement.options.length > 1) {
-            this.selectAnimElement.remove(1);
-        }
+        // Clear all options
+        this.selectAnimElement.innerHTML = '';
+
+        // Add "All Frames" option
+        const allOption = document.createElement('option');
+        allOption.value = "";
+        allOption.textContent = "All Frames";
+        this.selectAnimElement.appendChild(allOption);
 
         const sortedNames = Array.from(animationNames).sort();
-        let newSelection = null;
+        let newSelection = ""; // Default back to All Frames if previous is lost
 
-        sortedNames.forEach(name => {
+        sortedNames.forEach(name =>
+        {
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
             this.selectAnimElement.appendChild(option);
-            if (previousSelection === name) {
-                newSelection = name; // Keep the previous selection if it still exists
-            }
+            if (previousSelection === name) newSelection = name;
         });
 
         this.selectedAnimationName = newSelection;
-        this.selectAnimElement.value = this.selectedAnimationName || ""; // Set the dropdown value
-
+        this.selectAnimElement.value = newSelection;
         this.rebuildAnimation();
     }
 
-    private handleAnimationSelectChange(event: Event) {
-        const target = event.target as HTMLSelectElement;
-        this.selectedAnimationName = target.value || null; // If value is empty string, set to null
+    private handleAnimationSelectChange(event: Event)
+    {
+        this.selectedAnimationName = (event.target as HTMLSelectElement).value;
         this.rebuildAnimation();
     }
 
