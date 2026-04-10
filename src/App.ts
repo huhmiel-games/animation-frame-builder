@@ -206,19 +206,24 @@ export class App
         const imageFilesLength = imageFiles.length;
         if (imageFilesLength > 0)
         {
-            this.image.name = imageFiles.name;
             const imageSrc = URL.createObjectURL(imageFiles[0]);
-            this.imageElm.src = imageSrc;
-            this.imageElm.addEventListener("load", (e) =>
-            {
-                this.image.width = this.imageElm.naturalWidth;
-                this.image.height = this.imageElm.naturalHeight;
-                this.imageCanvas.classList.remove('none');
-                this.gridCanvas.classList.remove('none');
-                this.image.isLoaded = true;
-                this.renderCanvas();
-            }, { once: true });
+            this.loadReferenceImage(imageSrc, imageFiles[0].name);
         }
+    }
+
+    public loadReferenceImage(uri: string, name: string)
+    {
+        this.image.name = name;
+        this.imageElm.src = uri;
+        this.imageElm.addEventListener("load", () =>
+        {
+            this.image.width = this.imageElm.naturalWidth;
+            this.image.height = this.imageElm.naturalHeight;
+            this.imageCanvas.classList.remove('none');
+            this.gridCanvas.classList.remove('none');
+            this.image.isLoaded = true;
+            this.renderCanvas();
+        }, { once: true });
     }
 
     /**

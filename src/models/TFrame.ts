@@ -6,4 +6,6 @@ export interface TFrame {
     animFrame: Phaser.Types.Animations.AnimationFrame;
     isEnabled: boolean;
     name: string;
+    offsetX: number;
+    offsetY: number;
 }

@@ -94,6 +94,14 @@ export class FrameListElement
         ul.appendChild(li);
     }
 
+    public updateUIFromData(offsetX: number, offsetY: number, name: string, isEnabled: boolean)
+    {
+        this.offsetXInput.value = offsetX.toString();
+        this.offsetYInput.value = offsetY.toString();
+        this.nameInput.value = name;
+        this.enabledInput.checked = isEnabled;
+    }
+
     private createLabel(title: string, txt: string, classList: string[], htmlFor: string): HTMLLabelElement
     {
         const label = document.createElement('label');

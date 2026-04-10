@@ -81,6 +81,8 @@ export class RightPanelScene extends Phaser.Scene
 
                     this.frames[idx].texture = canvasTexture;
                     this.frames[idx].animFrame = { key: `img_${idx}`, frame: 0 };
+                    this.frames[idx].offsetX = offsetX;
+                    this.frames[idx].offsetY = offsetY;
 
                     this.updateAnimationSelect();
                     resolve(idx);
@@ -99,7 +101,9 @@ export class RightPanelScene extends Phaser.Scene
                         uri: imageURI,
                         animFrame: { key: `img_${this.count}`, frame: 0 },
                         isEnabled: true,
-                        name: ""
+                        name: "",
+                        offsetX: offsetX,
+                        offsetY: offsetY
                     });
 
                     const currentId = this.count;

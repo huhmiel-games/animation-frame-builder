@@ -1,4 +1,5 @@
 import { App } from './App';
+import { ProjectManager } from './ProjectManager';
 
-new App();
-
+const app = new App();
+new ProjectManager(app);
