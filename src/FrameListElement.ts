@@ -1,6 +1,5 @@
 import { deleteButtonSVG, pauseButtonSVG } from "./constant";
 import { RightPanelScene } from "./rightPanelScene";
-//import { framesInstance } from "./script";
 
 export class FrameListElement
 {
