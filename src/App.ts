@@ -190,7 +190,7 @@ export class App
         if (typeof event === 'string')
         {
             id = event;
-        } 
+        }
         else
         {
             event.preventDefault();
@@ -246,6 +246,7 @@ export class App
     renderCanvas()
     {
         if (!this.image.isLoaded) return;
+
         const ctx = this.imageCanvas.getContext("2d");
         const gridCtx = this.gridCanvas.getContext("2d");
         if (!ctx || !gridCtx) return;
@@ -299,6 +300,7 @@ export class App
     {
         const imageCtx = this.imageCanvas.getContext('2d');
         if (!imageCtx) return;
+
         try
         {
             this.selectedImageArea.data = imageCtx.getImageData(
@@ -307,7 +309,8 @@ export class App
                 (this.selectedImageArea.ex - this.selectedImageArea.sx) / this.image.zoom,
                 (this.selectedImageArea.ey - this.selectedImageArea.sy) / this.image.zoom
             );
-        } catch (error)
+        }
+        catch (error)
         {
             alert('Select a zone first');
             return;
@@ -321,6 +324,7 @@ export class App
 
         const ctx = this.floatingCanvas.getContext('2d');
         ctx?.putImageData(this.selectedImageArea.data, posX, posY);
+
         const copiedImage = this.floatingCanvas.toDataURL();
         const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
         const id = await scene.loadImage(copiedImage);
@@ -450,7 +454,10 @@ export class App
         // zoom image
         if (event.ctrlKey && event.target.id === 'imageCanvas' && this.image.isLoaded)
         {
-            if (this.selectedImageArea.isComplete) this.resetSelection(event);
+            if (this.selectedImageArea.isComplete)
+            {
+                this.resetSelection(event);
+            }
 
             let scrollX: number, scrollY: number;
             if (event.wheelDelta > 0)
@@ -486,18 +493,6 @@ export class App
         {
             event.preventDefault();
             this.downloadTilesetAsImage();
-            return;
-        }
-
-        if (event.ctrlKey === false && event.key === 'x' && this.selectedImageArea.data !== undefined)
-        {
-            // flipX();
-            return;
-        }
-
-        if (event.ctrlKey === false && event.key === 'y' && this.selectedImageArea.data !== undefined)
-        {
-            // flipY();
             return;
         }
     }

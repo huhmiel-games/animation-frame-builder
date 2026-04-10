@@ -3,9 +3,9 @@ import { RightPanelScene } from "./rightPanelScene";
 
 export class FrameListElement
 {
-    id: number
-    dataUri: string
-    scene: RightPanelScene
+    id: number;
+    dataUri: string;
+    scene: RightPanelScene;
     offsetXInput: HTMLInputElement;
     offsetYInput: HTMLInputElement;
     enabledInput: HTMLInputElement;
@@ -30,9 +30,9 @@ export class FrameListElement
     render()
     {
         const ul = document.getElementById('frame-list') as HTMLUListElement;
-        const li = document.createElement('li')
+        const li = document.createElement('li');
         li.id = this.id.toString();
-        li.classList.add('frame-list')
+        li.classList.add('frame-list');
 
         const offsetXLabel = this.createLabel('frame offset x in pixels', 'X: ', ['inline-label', 'text-light'], 'offset-x');
         const offsetYLabel = this.createLabel('frame offset y in pixels', 'Y: ', ['inline-label', 'text-light'], 'offset-y');
@@ -65,12 +65,12 @@ export class FrameListElement
         deleteBtn.role = "button";
         deleteBtn.classList.add('right');
         deleteBtn.innerHTML = deleteButtonSVG;
-        deleteBtn.addEventListener('click', this.deleteFrame)
+        deleteBtn.addEventListener('click', this.deleteFrame);
 
         const spanEnabled = document.createElement('span');
         spanEnabled.appendChild(this.enabledInput);
         const spanUpDownButtons = document.createElement('span');
-        spanUpDownButtons.role="group";
+        spanUpDownButtons.role = "group";
         spanUpDownButtons.appendChild(upBtn);
         spanUpDownButtons.appendChild(downBtn);
 
@@ -83,14 +83,14 @@ export class FrameListElement
         spanY.appendChild(this.offsetYInput);
         spanName.appendChild(nameLabel);
         spanName.appendChild(this.nameInput);
-        li.textContent = `${this.id}-   `
+        li.textContent = `${this.id}-   `;
         li.appendChild(spanEnabled);
         li.appendChild(spanUpDownButtons);
         li.appendChild(spanName);
         li.appendChild(spanX);
         li.appendChild(spanY);
         li.appendChild(deleteBtn);
-        li.addEventListener('click', this.selectFrame)
+        li.addEventListener('click', this.selectFrame);
         ul.appendChild(li);
     }
 
@@ -119,7 +119,7 @@ export class FrameListElement
         classList.forEach(str => inputNumber.classList.add(str));
         inputNumber.id = name + "_" + this.id; // Correct ID for label association
         inputNumber.value = '0';
-        inputNumber.addEventListener('input', this.handleChange)
+        inputNumber.addEventListener('input', this.handleChange);
         return inputNumber;
     }
 
@@ -130,7 +130,8 @@ export class FrameListElement
         classList.forEach(str => inputText.classList.add(str));
         inputText.id = name + "_" + this.id;
         inputText.value = '';
-        inputText.addEventListener('input', () => {
+        inputText.addEventListener('input', () =>
+        {
             this.scene.frames[this.id].name = inputText.value;
             this.scene.updateAnimationSelect(); // New: Update the animation select dropdown
         });
@@ -161,7 +162,9 @@ export class FrameListElement
     private moveDown(event: MouseEvent)
     {
         event.stopPropagation();
+
         if (this.id >= this.framesInstance.length - 1) return;
+
         this.scene.moveFrame(this.id, 'down');
         this.swapUI(this.id, this.id + 1);
     }
@@ -177,7 +180,7 @@ export class FrameListElement
             // Swap IDs in DOM
             liA.id = idxB.toString();
             liB.id = idxA.toString();
-            
+
             // Update text content
             liA.childNodes[0].textContent = `${idxB}-   `;
             liB.childNodes[0].textContent = `${idxA}-   `;
@@ -189,8 +192,14 @@ export class FrameListElement
             this.framesInstance[idxB].id = idxB;
 
             // Reorder in DOM
-            if (idxA < idxB) ul.insertBefore(liB, liA);
-            else ul.insertBefore(liA, liB);
+            if (idxA < idxB)
+            {
+                ul.insertBefore(liB, liA);
+            }
+            else
+            {
+                ul.insertBefore(liA, liB);
+            }
         }
     }
 
@@ -199,9 +208,9 @@ export class FrameListElement
         // Selection happens if we click the LI or its non-interactive children (span, label)
         if (['LI', 'SPAN', 'LABEL'].includes(event.target.nodeName))
         {
-            this.unselectFrames()
+            this.unselectFrames();
             const li = event.currentTarget as HTMLLIElement;
-            li.classList.add('border')
+            li.classList.add('border');
             this.scene.sprite.anims.stop();
             this.scene.sprite.setTexture(`img_${this.id}`);
             const playBtn = document.getElementById('play-anim') as HTMLButtonElement;
@@ -226,15 +235,16 @@ export class FrameListElement
         {
             if (frame.id > this.id)
             {
-                frame.id -= 1
+                frame.id -= 1;
             }
-        })
+        });
+        
         for (let i = 0; i < length; i += 1)
         {
-            const li = list.item(i)
+            const li = list.item(i);
             if (+li.id > this.id)
             {
-                li.id = `${+li.id - 1}`
+                li.id = `${+li.id - 1}`;
             }
         }
     }

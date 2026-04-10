@@ -59,7 +59,8 @@ export class RightPanelScene extends Phaser.Scene
 
     public async loadImage(imageURI: string, offsetX: number = 0, offsetY: number = 0, idx?: number): Promise<number>
     {
-        return new Promise((resolve) => {
+        return new Promise((resolve) =>
+        {
             const img = new Image();
 
             if (this.sprite === null)
@@ -141,11 +142,16 @@ export class RightPanelScene extends Phaser.Scene
 
         let framesToPlay: Phaser.Types.Animations.AnimationFrame[];
 
-        if (this.selectedAnimationName === "" || this.selectedAnimationName === null) { // "All Frames" selected or default
+        if (this.selectedAnimationName === "" || this.selectedAnimationName === null)
+        { // "All Frames" selected or default
             framesToPlay = this.frames.filter(f => f.isEnabled).map(f => f.animFrame);
-        } else if (this.selectedAnimationName) { // A specific animation name is selected
+        }
+        else if (this.selectedAnimationName)
+        { // A specific animation name is selected
             framesToPlay = this.frames.filter(f => f.isEnabled && f.name === this.selectedAnimationName).map(f => f.animFrame);
-        } else {
+        }
+        else
+        {
             framesToPlay = []; // No animation selected, so no frames to play
         }
 
@@ -163,7 +169,7 @@ export class RightPanelScene extends Phaser.Scene
             repeat: -1,
             yoyo: yoyo
         }) as Phaser.Animations.Animation;
-        
+
         this.sprite?.play('anim');
         this.playBtn.innerHTML = playButtonSVG;
     }
@@ -217,7 +223,10 @@ export class RightPanelScene extends Phaser.Scene
         const animationNames = new Set<string>();
         this.frames.forEach(frame =>
         {
-            if (frame.name) animationNames.add(frame.name);
+            if (frame.name)
+            {
+                animationNames.add(frame.name);
+            }
         });
 
         const previousSelection = this.selectedAnimationName;
@@ -240,7 +249,10 @@ export class RightPanelScene extends Phaser.Scene
             option.value = name;
             option.textContent = name;
             this.selectAnimElement.appendChild(option);
-            if (previousSelection === name) newSelection = name;
+            if (previousSelection === name)
+            {
+                newSelection = name;
+            }
         });
 
         this.selectedAnimationName = newSelection;
@@ -259,18 +271,21 @@ export class RightPanelScene extends Phaser.Scene
         if (idx >= this.frames.length) return;
 
         // Skip disabled frames
-        if (!this.frames[idx].isEnabled) {
+        if (!this.frames[idx].isEnabled)
+        {
             this.saveAssets(idx + 1);
             return;
         }
 
         const name = (document.getElementById('name') as HTMLInputElement).value || 'img';
         const key = this.frames[idx].animFrame.key;
+
         let frameName = this.frames[idx].name || '';
         if (frameName)
         {
-            frameName = frameName.padStart(frameName.length+1, '_');
+            frameName = frameName.padStart(frameName.length + 1, '_');
         }
+        
         this.sprite?.setTexture(key, 0);
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {

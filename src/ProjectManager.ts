@@ -101,8 +101,6 @@ export class ProjectManager
         {
             projectNames.forEach(name =>
             {
-                console.log("opening frame: ", name);
-                
                 const li = document.createElement('li');
 
                 const btn = document.createElement('button');
@@ -133,9 +131,9 @@ export class ProjectManager
                 deleteBtn.classList.add('right');
                 deleteBtn.innerHTML = deleteButtonSVG;
                 deleteBtn.addEventListener('click', (event) => this.removeProject(event, name), { once: true });
+
                 btn.appendChild(deleteBtn);
                 li.appendChild(btn);
-
                 listContainer.appendChild(li);
             });
         }
@@ -222,10 +220,12 @@ export class ProjectManager
     private async removeProject(event: Event, name: string)
     {
         event.stopPropagation();
+
         await this.store.removeItem(name);
-        console.log('REMOVE PROJECT', event.currentTarget);
+
         const modal = document.getElementById('modal-projects') as HTMLDialogElement;
         if (modal) modal.open = false;
+        
         this.handleOpenProjectClick(event);
     }
 }

@@ -71,7 +71,8 @@ ul li button {
     background-repeat: repeat;
 }
 
-#imageCanvas, .grid-canvas {
+#imageCanvas,
+.grid-canvas {
     position: absolute;
     top: 0;
     left: 0;
@@ -81,7 +82,8 @@ ul li button {
    intercepter les clics destinés à l'imageCanvas */
 .grid-canvas {
     pointer-events: none;
-    z-index: 1; /* Juste au-dessus de l'image */
+    z-index: 1;
+    /* Juste au-dessus de l'image */
 }
 
 .right-panel {
@@ -112,7 +114,7 @@ ul li button {
     overflow: hidden;
 }
 
-.right-bottom > ul {
+.right-bottom>ul {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 2px;
@@ -183,7 +185,9 @@ kbd>svg {
     margin: 0.2rem 0;
 }
 
-input:not([type=checkbox], [type=radio]), select, textarea {
+input:not([type=checkbox], [type=radio]),
+select,
+textarea {
     margin-bottom: 0;
 }
 
@@ -209,9 +213,9 @@ input:not([type=checkbox], [type=radio]), select, textarea {
 }
 
 .modal {
-    list-style: none; 
-    padding: 0; 
-    max-height: 300px; 
+    list-style: none;
+    padding: 0;
+    max-height: 300px;
     overflow-y: auto;
 }
 
