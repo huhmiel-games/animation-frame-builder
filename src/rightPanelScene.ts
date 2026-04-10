@@ -204,7 +204,11 @@ export class RightPanelScene extends Phaser.Scene
     {
         const name = (document.getElementById('name') as HTMLInputElement).value || 'img';
         const key = this.animFrames[idx].key;
-        const frameName = this.frameNames[idx] || '';
+        let frameName = this.frameNames[idx] || '';
+        if (frameName)
+        {
+            frameName = frameName.padStart(frameName.length+1, '_');
+        }
         this.sprite.setTexture(key, 0);
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {
@@ -215,7 +219,7 @@ export class RightPanelScene extends Phaser.Scene
             {
                 let a = document.createElement('a');
                 a.href = window.URL.createObjectURL(xhr.response);
-                a.download = `${name}_${frameName}_${idx}`;
+                a.download = `${name}${frameName}_${idx}`;
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
