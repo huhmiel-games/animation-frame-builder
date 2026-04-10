@@ -105,10 +105,19 @@ ul li button {
 
 .right-bottom {
     height: 50%;
-    overflow: auto;
     margin: 0;
-    padding: 1rem;
+    /* padding: 1rem; */
     background-color: #11191f;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.right-bottom > ul {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 2px;
+    padding: 2px;
 }
 
 
