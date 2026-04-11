@@ -16,6 +16,7 @@ body {
 
 canvas {
     image-rendering: pixelated;
+    box-sizing: content-box;
     /* background-image: url("/assets/grid-1.png");
     background-repeat: repeat;
     background-blend-mode: luminosity; */
@@ -86,6 +87,17 @@ ul li button {
     /* Juste au-dessus de l'image */
 }
 
+.right-grid-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+    image-rendering: pixelated;
+    margin: 0 !important;
+    border: none !important;
+}
+
 .right-panel {
     flex: 0 0 50%;
     height: 100%;
@@ -100,9 +112,9 @@ ul li button {
 #tilesetCanvas {
     flex: 1;
     overflow: auto;
-    background-image: url("/assets/grid-2.png");
+    /* background-image: url("/assets/grid-2.png");
     background-repeat: repeat;
-    background-blend-mode: luminosity;
+    background-blend-mode: luminosity; */
 }
 
 .right-bottom {

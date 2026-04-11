@@ -12,6 +12,7 @@ export class RightPanelScene extends Phaser.Scene
     playBtn: HTMLButtonElement;
     private targetDirectory: string | null = null;
     selectAnimElement: HTMLSelectElement;
+    gridCanvasRight: HTMLCanvasElement;
 
     constructor()
     {
@@ -26,8 +27,10 @@ export class RightPanelScene extends Phaser.Scene
         this.toggleFrame = this.toggleFrame.bind(this);
         this.moveFrame = this.moveFrame.bind(this);
         this.handleAnimationSelectChange = this.handleAnimationSelectChange.bind(this);
+        this.syncGridMargins = this.syncGridMargins.bind(this);
 
         this.selectAnimElement = document.getElementById('select-anim') as HTMLSelectElement;
+        this.gridCanvasRight = document.getElementById('gridCanvasRight') as HTMLCanvasElement;
     }
 
     public preload()
@@ -49,6 +52,13 @@ export class RightPanelScene extends Phaser.Scene
     {
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleZoom);
         this.selectAnimElement.addEventListener('change', this.handleAnimationSelectChange);
+
+        // Synchronisation automatique des marges quand Phaser redimensionne ou recentre
+        this.scale.on(Phaser.Scale.Events.RESIZE, this.syncGridMargins);
+        
+        // Premier rendu : on assure l'alignement dès que le moteur a "settled" le DOM
+        this.events.once(Phaser.Renderer.Events.POST_RENDER, this.syncGridMargins);
+
         this.selectedAnimationName = ""; // Default to "All Frames"
         this.updateAnimationSelect(); // Initial population of the select dropdown
     }
@@ -150,9 +160,28 @@ export class RightPanelScene extends Phaser.Scene
             // ET le changement de marge causé par autoCenter (new - old offset)
             const newCanvasOffset = canvas.offsetLeft;
             
+            this.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
+            this.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
+
             parent.scrollLeft += event.x * (newZoom - oldZoom) + (newCanvasOffset - oldCanvasOffset);
             parent.scrollTop += event.y * (newZoom - oldZoom);
+            this.syncGridMargins();
         }
+    }
+
+    private syncGridMargins()
+    {
+        const gameCanvas = this.game.canvas;
+        if (!this.gridCanvasRight || !gameCanvas) return;
+
+        // On attend le prochain cycle pour garantir que le navigateur a calculé 
+        // la position finale du canvas de Phaser (évite le bug 141px vs 142px)
+        requestAnimationFrame(() => {
+            // On s'aligne sur les pixels INTERNES (le contenu) du canvas de jeu.
+            // offsetLeft est le bord extérieur de la bordure; +1px nous place sur le premier pixel.
+            this.gridCanvasRight.style.left = (gameCanvas.offsetLeft + 1) + 'px';
+            this.gridCanvasRight.style.top = (gameCanvas.offsetTop + 1) + 'px';
+        });
     }
 
     private rebuildAnimation()

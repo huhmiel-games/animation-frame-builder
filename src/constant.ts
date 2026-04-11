@@ -19,16 +19,6 @@ export const config: Phaser.Types.Core.GameConfig = {
         autoRound: true,
         autoCenter: Phaser.Scale.Center.CENTER_HORIZONTALLY
     },
-    physics: {
-        default: 'arcade',
-        arcade: {
-            tileBias: 20,
-            gravity: { x: 0, y: 0 },
-            debug: true,
-            debugShowBody: true,
-            debugShowStaticBody: true,
-        },
-    },
     scene: [RightPanelScene],
 }
 

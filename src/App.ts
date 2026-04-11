@@ -12,6 +12,7 @@ export class App
     heightInput = document.getElementById('height') as HTMLInputElement;
     imageCanvas = document.getElementById('imageCanvas') as HTMLCanvasElement;
     gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
+    gridCanvasRight = document.getElementById('gridCanvasRight') as HTMLCanvasElement;
     redZone = document.getElementById("red-zone") as HTMLDivElement;
     floatingCanvas = document.getElementById('floating-canvas') as HTMLCanvasElement;
     leftPanel = document.getElementById('left-panel') as HTMLDivElement;
@@ -98,6 +99,7 @@ export class App
         this.changeFrameRate = this.changeFrameRate.bind(this);
         this.setYoyo = this.setYoyo.bind(this);
         this.updateGridState = this.updateGridState.bind(this);
+        this.renderRightGrid = this.renderRightGrid.bind(this);
     }
 
     addEventListeners()
@@ -140,6 +142,7 @@ export class App
             const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
             scene.cameras.main.setViewport(0, 0, config.width, config.height);
             scene.sprite?.setPosition(config.width / 2, config.height / 2);
+            this.renderRightGrid();
         }
     }
 
@@ -187,6 +190,7 @@ export class App
         this.grid.offsetX = +this.gridOffXInput.value;
         this.grid.offsetY = +this.gridOffYInput.value;
         this.renderCanvas();
+        this.renderRightGrid();
     }
 
     // Settings
@@ -279,26 +283,57 @@ export class App
         this.drawGrid(gridCtx, width, height, offX, offY, color);
     }
 
-    drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number, offsetY: number, color: string)
+    renderRightGrid()
+    {
+        const gridCtx = this.gridCanvasRight.getContext("2d");
+        if (!gridCtx) return;
+
+        const w = +this.widthInput.value;
+        const h = +this.heightInput.value;
+
+        this.gridCanvasRight.width = w;
+        this.gridCanvasRight.height = h;
+        this.gridCanvasRight.classList.remove('none');
+
+        // Synchronisation de la taille d'affichage avec le zoom actuel de Phaser
+        const zoom = this.game.scale.zoom;
+        this.gridCanvasRight.style.width = w * zoom + 'px';
+        this.gridCanvasRight.style.height = h * zoom + 'px';
+        this.gridCanvasRight.style.display = 'block';
+
+        gridCtx.clearRect(0, 0, w, h);
+
+        const stepW = this.grid.isEnabled ? this.grid.width : 8;
+        const stepH = this.grid.isEnabled ? this.grid.height : 8;
+        const offX = this.grid.isEnabled ? this.grid.offsetX : 0;
+        const offY = this.grid.isEnabled ? this.grid.offsetY : 0;
+        const color = "rgba(255, 0, 195, 0.35)";
+
+        this.drawGrid(gridCtx, stepW, stepH, offX, offY, color, w, h);
+    }
+
+    drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number, offsetY: number, color: string, boundsW?: number, boundsH?: number)
     {
         if (width <= 0 || height <= 0) return;
+        const bW = boundsW ?? this.image.width;
+        const bH = boundsH ?? this.image.height;
 
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
 
         // Vertical lines
-        for (let x = offsetX; x <= this.image.width; x += width)
+        for (let x = offsetX; x <= bW; x += width)
         {
             ctx.moveTo(x + 0.5, 0);
-            ctx.lineTo(x + 0.5, this.image.height);
+            ctx.lineTo(x + 0.5, bH);
         }
 
         // Horizontal lines
-        for (let y = offsetY; y <= this.image.height; y += height)
+        for (let y = offsetY; y <= bH; y += height)
         {
             ctx.moveTo(0, y + 0.5);
-            ctx.lineTo(this.image.width, y + 0.5);
+            ctx.lineTo(bW, y + 0.5);
         }
         ctx.stroke();
     }
