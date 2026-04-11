@@ -3,8 +3,8 @@
   "scripts": {
     "start": "node ./esbuild/dev.cjs",
     "build": "node ./esbuild/build.cjs && cp -r ./public/* ./build/ ",
-    "build-packages": "grunt",
-    "build-deb": "node-deb -- map2tileset dist/AnimationFrameBuilder/linux64/"
+    "dist": "grunt",
+    "package": "./create-appimage.sh"
   },
   "dependencies": {
     "localforage": "^1.10.0",

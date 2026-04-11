@@ -1,5 +1,7 @@
 # Animation Frame Builder
 
+All icons are from 
+
 Animation Frame Builder is a simple and easy to use graphics tool that help you creates frames from atlas without json.
 ## Usage
 Open an image on the left panel.

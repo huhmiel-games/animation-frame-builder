@@ -1,9 +1,9 @@
 {
-    "name": "spritesheet-preparer",
+    "name": "animation-frame-builder",
     "version": "1.0.0",
     "main": "index.html",
     "window": {
-        "title": "Spritesheet-Preparer",
+        "title": "AnimationFrameBuilder",
         "toolbar": true,
         "frame": true,
         "width": 1600,

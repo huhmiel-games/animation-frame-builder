@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-APP_NAME="Map2Tileset"
-SRC_DIR="dist/map2tileset/linux64"
+APP_NAME="animation-frame-builder"
+SRC_DIR="dist/animation-frame-builder/linux64"
 APPDIR="dist/AppDir"
 ICON_FILE="icon.png"  # Placez votre icône 256x256 dans le dossier racine
 
@@ -19,15 +19,15 @@ cp -r "$SRC_DIR"/* "$APPDIR/"
 
 # 3. Renommer l'exécutable NW.js
 echo "[2/5] Configuration de l'exécutable..."
-if [ -f "$APPDIR/map2tileset" ]; then
-    mv "$APPDIR/map2tileset" "$APPDIR/$APP_NAME"
+if [ -f "$APPDIR/animation-frame-builder" ]; then
+    mv "$APPDIR/animation-frame-builder" "$APPDIR/$APP_NAME"
 else
     echo "Erreur: Exécutable NW.js non trouvé!"
     exit 1
 fi
 
 # Rendre exécutable
-chmod +x "$APPDIR/Map2Tileset"
+chmod +x "$APPDIR/animation-frame-builder"
 
 # CRITIQUE : Créer le fichier AppRun (CORRIGÉ)
 echo "[3/5] Création du fichier AppRun..."
@@ -35,7 +35,7 @@ cat > "$APPDIR/AppRun" <<'APPRUNEOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "${0}")")"
 export LD_LIBRARY_PATH="${HERE}/lib:${HERE}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-exec "${HERE}/Map2Tileset" "$@"
+exec "${HERE}/animation-frame-builder" "$@"
 APPRUNEOF
 chmod +x "$APPDIR/AppRun"
 
