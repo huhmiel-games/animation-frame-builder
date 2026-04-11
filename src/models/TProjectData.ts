@@ -9,6 +9,7 @@ export interface TProjectData {
         canvasWidth: string;
         canvasHeight: string;
         grid: TGrid;
+        frameGridSize: string;
         frameRate: string;
         yoyo: boolean;
     };

@@ -23,6 +23,7 @@ export class App
     gridHeightInput = document.getElementById('grid-height') as HTMLInputElement;
     gridOffXInput = document.getElementById('grid-offx') as HTMLInputElement;
     gridOffYInput = document.getElementById('grid-offy') as HTMLInputElement;
+    frameGridSizeInput = document.getElementById('frame-grid-size') as HTMLInputElement;
 
     // Data
     selectedImageArea: TSelectedImageArea = {
@@ -130,6 +131,7 @@ export class App
         this.gridHeightInput.addEventListener('input', this.updateGridState);
         this.gridOffXInput.addEventListener('input', this.updateGridState);
         this.gridOffYInput.addEventListener('input', this.updateGridState);
+        this.frameGridSizeInput.addEventListener('input', this.renderRightGrid);
     }
 
     startPhaser()
@@ -190,7 +192,6 @@ export class App
         this.grid.offsetX = +this.gridOffXInput.value;
         this.grid.offsetY = +this.gridOffYInput.value;
         this.renderCanvas();
-        this.renderRightGrid();
     }
 
     // Settings
@@ -303,13 +304,11 @@ export class App
 
         gridCtx.clearRect(0, 0, w, h);
 
-        const stepW = this.grid.isEnabled ? this.grid.width : 8;
-        const stepH = this.grid.isEnabled ? this.grid.height : 8;
-        const offX = this.grid.isEnabled ? this.grid.offsetX : 0;
-        const offY = this.grid.isEnabled ? this.grid.offsetY : 0;
+        // La grille de droite est indépendante : carrée et sans offset
+        const gridSize = +this.frameGridSizeInput.value || 8;
         const color = "rgba(255, 0, 195, 0.35)";
 
-        this.drawGrid(gridCtx, stepW, stepH, offX, offY, color, w, h);
+        this.drawGrid(gridCtx, gridSize, gridSize, 0, 0, color, w, h);
     }
 
     drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number, offsetY: number, color: string, boundsW?: number, boundsH?: number)

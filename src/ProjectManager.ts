@@ -58,6 +58,7 @@ export class ProjectManager
                 canvasWidth: this.app.widthInput.value,
                 canvasHeight: this.app.heightInput.value,
                 grid: this.app.grid,
+                frameGridSize: this.app.frameGridSizeInput.value,
                 frameRate: this.app.rangeElm.value,
                 yoyo: (document.getElementById('yoyo') as HTMLInputElement)?.checked || false
             },
@@ -169,6 +170,7 @@ export class ProjectManager
             this.app.widthInput.value = data.settings.canvasWidth;
             this.app.heightInput.value = data.settings.canvasHeight;
             this.app.grid = data.settings.grid;
+            this.app.frameGridSizeInput.value = data.settings.frameGridSize || "8";
 
             // UI grid sync
             this.app.gridSnapInput.checked = this.app.grid.isEnabled;
