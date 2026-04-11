@@ -55,7 +55,7 @@ export class RightPanelScene extends Phaser.Scene
 
         // Synchronisation automatique des marges quand Phaser redimensionne ou recentre
         this.scale.on(Phaser.Scale.Events.RESIZE, this.syncGridMargins);
-        
+
         // Premier rendu : on assure l'alignement dès que le moteur a "settled" le DOM
         this.events.once(Phaser.Renderer.Events.POST_RENDER, this.syncGridMargins);
 
@@ -97,7 +97,8 @@ export class RightPanelScene extends Phaser.Scene
                 canvasTexture.refresh();
 
                 // If the sprite is currently displaying this frame, update its texture
-                if (this.sprite && this.sprite.texture.key === key) {
+                if (this.sprite && this.sprite.texture.key === key)
+                {
                     this.sprite.setTexture(key);
                 }
 
@@ -159,7 +160,7 @@ export class RightPanelScene extends Phaser.Scene
             // On compense l'agrandissement des pixels (event.x * diff)
             // ET le changement de marge causé par autoCenter (new - old offset)
             const newCanvasOffset = canvas.offsetLeft;
-            
+
             this.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
             this.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
 
@@ -176,7 +177,8 @@ export class RightPanelScene extends Phaser.Scene
 
         // On attend le prochain cycle pour garantir que le navigateur a calculé 
         // la position finale du canvas de Phaser (évite le bug 141px vs 142px)
-        requestAnimationFrame(() => {
+        requestAnimationFrame(() =>
+        {
             // On s'aligne sur les pixels INTERNES (le contenu) du canvas de jeu.
             // offsetLeft est le bord extérieur de la bordure; +1px nous place sur le premier pixel.
             this.gridCanvasRight.style.left = (gameCanvas.offsetLeft + 1) + 'px';
@@ -188,7 +190,7 @@ export class RightPanelScene extends Phaser.Scene
     {
         const frameRate = this.anim?.frameRate || 8;
         const yoyo = this.anim?.yoyo || false;
-        let isPlaying = this.sprite?.anims.isPlaying;
+        let isPlaying: boolean = this.sprite?.anims.isPlaying;
 
         if (this.anims.exists('anim'))
         {
@@ -229,6 +231,17 @@ export class RightPanelScene extends Phaser.Scene
         {
             this.sprite?.anims.play('anim');
             this.playBtn.innerHTML = playButtonSVG;
+        }
+        else if (this.sprite && (
+            this.sprite.texture.key === '_DEFAULT' ||
+            this.sprite.texture.key === '__MISSING' ||
+            this.sprite.texture.key === 'wipSprite' ||
+            this.sprite.texture.key === '__DEFAULT')
+        )
+        {
+            // Si l'animation ne tourne pas et qu'on affiche une texture par défaut/temporaire,
+            // on affiche la première frame de la sélection actuelle.
+            this.sprite.setTexture(framesToPlay[0].key);
         }
     }
 
@@ -326,7 +339,8 @@ export class RightPanelScene extends Phaser.Scene
 
     public saveAssets(idx: number)
     {
-        if (idx >= this.frames.length) {
+        if (idx >= this.frames.length)
+        {
             this.targetDirectory = null;
             return;
         }
@@ -341,12 +355,15 @@ export class RightPanelScene extends Phaser.Scene
         const isNW = typeof (window as any).nw !== 'undefined';
 
         // NW.js: Ask for directory once at the start
-        if (isNW && idx === 0 && !this.targetDirectory) {
+        if (isNW && idx === 0 && !this.targetDirectory)
+        {
             const selector = document.createElement('input');
             selector.type = 'file';
             selector.setAttribute('nwdirectory', '');
-            selector.onchange = (e: any) => {
-                if (selector.value) {
+            selector.onchange = (e: any) =>
+            {
+                if (selector.value)
+                {
                     this.targetDirectory = selector.value;
                     this.saveAssets(0); // Restart export with the directory selected
                 }
@@ -369,7 +386,8 @@ export class RightPanelScene extends Phaser.Scene
         {
             const texture = this.game.canvas.toDataURL('image/png');
 
-            if (isNW && this.targetDirectory) {
+            if (isNW && this.targetDirectory)
+            {
                 // Node.js direct file saving
                 const fs = (window as any).require('fs');
                 const path = (window as any).require('path');
@@ -377,11 +395,14 @@ export class RightPanelScene extends Phaser.Scene
                 const fileName = `${name}${frameName}_${idx}.png`;
                 const fullPath = path.join(this.targetDirectory, fileName);
 
-                fs.writeFile(fullPath, base64Data, 'base64', (err: any) => {
+                fs.writeFile(fullPath, base64Data, 'base64', (err: any) =>
+                {
                     if (err) console.error("Failed to save image", err);
                     this.saveAssets(idx + 1);
                 });
-            } else {
+            } 
+            else
+            {
                 // Standard Web download behavior
                 const xhr = new XMLHttpRequest();
                 xhr.responseType = 'blob';
