@@ -1,4 +1,4 @@
-import { RightPanelScene } from "./rightPanelScene";
+import { RightPanelScene } from "./RightPanelScene";
 import { App } from "./App";
 
 export class FrameListElement
@@ -13,13 +13,13 @@ export class FrameListElement
     framesInstance: FrameListElement[];
     private app: App;
 
-    constructor(id: number, dataUri: string, scene: RightPanelScene, framesInstance: FrameListElement[])
+    constructor(id: number, dataUri: string, scene: RightPanelScene, app: App, framesInstance: FrameListElement[])
     {
         this.id = id;
         this.dataUri = dataUri;
         this.scene = scene;
+        this.app = app;
         this.framesInstance = framesInstance;
-        this.app = (scene.game as any).app;
         this.handleChange = this.handleChange.bind(this);
         this.deleteFrame = this.deleteFrame.bind(this);
         this.selectFrame = this.selectFrame.bind(this);

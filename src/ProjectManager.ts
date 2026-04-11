@@ -1,5 +1,5 @@
 import type { App } from "./App";
-import type { RightPanelScene } from "./rightPanelScene";
+import type { RightPanelScene } from "./RightPanelScene";
 import { FrameListElement } from "./FrameListElement";
 import { TProjectData } from "./models/TProjectData";
 import { deleteButtonSVG } from "./constant";
@@ -147,7 +147,7 @@ export class ProjectManager
             {
                 const f = data.frames[i];
                 const id = await scene.loadImage(f.uri, f.offsetX, f.offsetY);
-                const frameUI = new FrameListElement(id, f.uri, scene, this.app.framesInstance);
+                const frameUI = new FrameListElement(id, f.uri, scene, this.app, this.app.framesInstance);
 
                 // Re-apply saved data to the UI and Model
                 scene.frames[id].name = f.name;

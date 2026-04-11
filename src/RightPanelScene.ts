@@ -27,8 +27,10 @@ export class RightPanelScene extends Phaser.Scene
         this.syncGridMargins = this.syncGridMargins.bind(this);
         this.setSelectedAnimation = this.setSelectedAnimation.bind(this);
     }
-    init() {
-        this.app = (this.game as any).app;
+
+    public init(data: { app: App, fileService: FileService }) {
+        this.app = data.app;
+        this.fileService = data.fileService;
     }
 
     public preload()
@@ -48,7 +50,6 @@ export class RightPanelScene extends Phaser.Scene
 
     public create()
     {
-        this.fileService = this.app.fileService; // Get FileService from App
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleWheel);
 
         // Synchronisation automatique des marges quand Phaser redimensionne ou recentre
