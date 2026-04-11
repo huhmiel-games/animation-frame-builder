@@ -10,6 +10,7 @@ export class RightPanelScene extends Phaser.Scene
     count = 0;
     selectedAnimationName: string | null = null;
     playBtn: HTMLButtonElement;
+    private targetDirectory: string | null = null;
     selectAnimElement: HTMLSelectElement;
 
     constructor()
@@ -277,12 +278,32 @@ export class RightPanelScene extends Phaser.Scene
 
     public saveAssets(idx: number)
     {
-        if (idx >= this.frames.length) return;
+        if (idx >= this.frames.length) {
+            this.targetDirectory = null;
+            return;
+        }
 
         // Skip disabled frames
         if (!this.frames[idx].isEnabled)
         {
             this.saveAssets(idx + 1);
+            return;
+        }
+
+        const isNW = typeof (window as any).nw !== 'undefined';
+
+        // NW.js: Ask for directory once at the start
+        if (isNW && idx === 0 && !this.targetDirectory) {
+            const selector = document.createElement('input');
+            selector.type = 'file';
+            selector.setAttribute('nwdirectory', '');
+            selector.onchange = (e: any) => {
+                if (selector.value) {
+                    this.targetDirectory = selector.value;
+                    this.saveAssets(0); // Restart export with the directory selected
+                }
+            };
+            selector.click();
             return;
         }
 
@@ -299,24 +320,40 @@ export class RightPanelScene extends Phaser.Scene
         this.events.once(Phaser.Renderer.Events.RENDER, () =>
         {
             const texture = this.game.canvas.toDataURL('image/png');
-            const xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
-            xhr.onload = () =>
-            {
-                let a = document.createElement('a');
-                a.href = window.URL.createObjectURL(xhr.response);
-                a.download = `${name}${frameName}_${idx}`;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                if (idx < this.frames.length - 1)
-                {
+
+            if (isNW && this.targetDirectory) {
+                // Node.js direct file saving
+                const fs = (window as any).require('fs');
+                const path = (window as any).require('path');
+                const base64Data = texture.replace(/^data:image\/png;base64,/, "");
+                const fileName = `${name}${frameName}_${idx}.png`;
+                const fullPath = path.join(this.targetDirectory, fileName);
+
+                fs.writeFile(fullPath, base64Data, 'base64', (err: any) => {
+                    if (err) console.error("Failed to save image", err);
                     this.saveAssets(idx + 1);
-                }
-            };
-            xhr.open('GET', texture);
-            xhr.send();
+                });
+            } else {
+                // Standard Web download behavior
+                const xhr = new XMLHttpRequest();
+                xhr.responseType = 'blob';
+                xhr.onload = () =>
+                {
+                    let a = document.createElement('a');
+                    a.href = window.URL.createObjectURL(xhr.response);
+                    a.download = `${name}${frameName}_${idx}.png`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    if (idx < this.frames.length - 1)
+                    {
+                        this.saveAssets(idx + 1);
+                    }
+                };
+                xhr.open('GET', texture);
+                xhr.send();
+            }
         }, this);
     }
 
