@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import { TFrame } from "./models/TFrame";
-import { App } from "./App";
-import type { FileService } from "./FileService";
+import { TFrame } from "../models/TFrame";
+import { App } from "../App";
+import type { FileService } from "../services/FileService";
 
 export class RightPanelScene extends Phaser.Scene
 {

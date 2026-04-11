@@ -1,5 +1,5 @@
 import localforage from "localforage";
-import type { TProjectData } from "./models/TProjectData";
+import type { TProjectData } from "../models/TProjectData";
 
 export class DatabaseService {
     private store: LocalForage;

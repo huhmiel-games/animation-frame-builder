@@ -1,5 +1,5 @@
-import { RightPanelScene } from "./RightPanelScene";
-import { App } from "./App";
+import { RightPanelScene } from "../scenes/RightPanelScene";
+import { App } from "../App";
 
 export class FrameListElement
 {

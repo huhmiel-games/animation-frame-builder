@@ -1,6 +1,6 @@
-import { Gui } from "./Gui";
+import { Gui } from "../ui/Gui";
 import { GridCanvasService } from "./GridCanvasService";
-import type { TImage, TGrid } from "./types";
+import type { TImage, TGrid } from "../types";
 
 export class CanvasService {
     constructor(private gui: Gui, private gridCanvasService: GridCanvasService) {}

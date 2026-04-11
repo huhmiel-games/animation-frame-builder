@@ -1,5 +1,5 @@
-import { TProjectData } from "./models/TProjectData";
-import { deleteButtonSVG } from "./constant";
+import { TProjectData } from "../models/TProjectData";
+import { deleteButtonSVG } from "../constant/constant";
 
 export class Gui {
     // DOM Elements - Left Panel

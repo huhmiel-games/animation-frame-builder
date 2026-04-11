@@ -1,5 +1,5 @@
-import { App } from "./App";
-import { TSelectedImageArea } from "./types";
+import { App } from "../App";
+import { TSelectedImageArea } from "../types";
 
 export class SelectionManager {
     public area: TSelectedImageArea = {

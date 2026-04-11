@@ -1,12 +1,12 @@
-import { config, pauseButtonSVG, playButtonSVG } from "./constant";
-import { FrameListElement } from "./FrameListElement";
-import { RightPanelScene } from "./RightPanelScene";
-import { Gui } from "./Gui";
+import { config, pauseButtonSVG, playButtonSVG } from "./constant/constant";
+import { FrameListElement } from "./ui/FrameListElement";
+import { RightPanelScene } from "./scenes/RightPanelScene";
+import { Gui } from "./ui/Gui";
 import type { TImage, TTileset, TGrid } from "./types";
-import { FileService } from "./FileService";
-import { SelectionManager } from "./SelectionManager";
-import { GridCanvasService } from "./GridCanvasService";
-import { CanvasService } from "./CanvasService";
+import { FileService } from "./services/FileService";
+import { SelectionManager } from "./managers/SelectionManager";
+import { GridCanvasService } from "./services/GridCanvasService";
+import { CanvasService } from "./services/CanvasService";
 
 export class App
 {

@@ -1,9 +1,9 @@
-import type { App } from "./App";
-import type { RightPanelScene } from "./RightPanelScene";
-import { FrameListElement } from "./FrameListElement";
-import { TProjectData } from "./models/TProjectData";
-import { deleteButtonSVG } from "./constant";
-import { DatabaseService } from "./DatabaseService";
+import type { App } from "../App";
+import type { RightPanelScene } from "../scenes/RightPanelScene";
+import { FrameListElement } from "../ui/FrameListElement";
+import { TProjectData } from "../models/TProjectData";
+import { deleteButtonSVG } from "../constant/constant";
+import { DatabaseService } from "../services/DatabaseService";
 
 export class ProjectManager
 {
