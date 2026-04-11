@@ -20,7 +20,7 @@ export class RightPanelScene extends Phaser.Scene
             key: 'RightPanelScene',
         });
         this.playBtn = document.getElementById('play-anim') as HTMLButtonElement;
-        this.handleZoom = this.handleZoom.bind(this);
+        this.handleWheel = this.handleWheel.bind(this);
         this.changeFrameRate = this.changeFrameRate.bind(this);
         this.offsetXY = this.offsetXY.bind(this);
         this.saveAssets = this.saveAssets.bind(this);
@@ -50,7 +50,7 @@ export class RightPanelScene extends Phaser.Scene
 
     public create()
     {
-        this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleZoom);
+        this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleWheel);
         this.selectAnimElement.addEventListener('change', this.handleAnimationSelectChange);
 
         // Synchronisation automatique des marges quand Phaser redimensionne ou recentre
@@ -131,42 +131,54 @@ export class RightPanelScene extends Phaser.Scene
         });
     }
 
-    private handleZoom(event: Phaser.Input.Pointer)
+    private handleWheel(pointer: Phaser.Input.Pointer)
     {
-        if (!event.event.ctrlKey) return;
-
+        const event = pointer.event as WheelEvent;
         const parent = this.game.canvas.parentElement;
         if (!parent) return;
 
-        const oldZoom = this.game.scale.zoom;
-        let newZoom = oldZoom;
-
-        if (event.deltaY > 0)
+        if (event.ctrlKey)
         {
-            newZoom = Phaser.Math.Clamp(oldZoom * 0.5, 1, 64);
+            // Logique de ZOOM
+            const oldZoom = this.game.scale.zoom;
+            let newZoom = oldZoom;
+
+            if (event.deltaY > 0)
+            {
+                newZoom = Phaser.Math.Clamp(oldZoom * 0.5, 1, 64);
+            }
+            else if (event.deltaY < 0)
+            {
+                newZoom = Phaser.Math.Clamp(oldZoom * 2, 1, 64);
+            }
+
+            if (newZoom !== oldZoom)
+            {
+                const canvas = this.game.canvas;
+                const oldCanvasOffset = canvas.offsetLeft;
+
+                this.game.scale.setZoom(newZoom);
+
+                const newCanvasOffset = canvas.offsetLeft;
+
+                this.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
+                this.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
+
+                // pointer.x/y sont les positions relatives internes au canvas
+                parent.scrollLeft += pointer.x * (newZoom - oldZoom) + (newCanvasOffset - oldCanvasOffset);
+                parent.scrollTop += pointer.y * (newZoom - oldZoom);
+                this.syncGridMargins();
+            }
         }
-        else if (event.deltaY < 0)
+        else if (event.shiftKey)
         {
-            newZoom = Phaser.Math.Clamp(oldZoom * 2, 1, 64);
+            // Scroll X (Horizontal)
+            parent.scrollLeft += event.deltaY;
         }
-
-        if (newZoom !== oldZoom)
+        else
         {
-            const canvas = this.game.canvas;
-            const oldCanvasOffset = canvas.offsetLeft;
-
-            this.game.scale.setZoom(newZoom);
-
-            // On compense l'agrandissement des pixels (event.x * diff)
-            // ET le changement de marge causé par autoCenter (new - old offset)
-            const newCanvasOffset = canvas.offsetLeft;
-
-            this.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
-            this.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
-
-            parent.scrollLeft += event.x * (newZoom - oldZoom) + (newCanvasOffset - oldCanvasOffset);
-            parent.scrollTop += event.y * (newZoom - oldZoom);
-            this.syncGridMargins();
+            // Scroll Y (Vertical)
+            parent.scrollTop += event.deltaY;
         }
     }
 
@@ -400,7 +412,7 @@ export class RightPanelScene extends Phaser.Scene
                     if (err) console.error("Failed to save image", err);
                     this.saveAssets(idx + 1);
                 });
-            } 
+            }
             else
             {
                 // Standard Web download behavior
