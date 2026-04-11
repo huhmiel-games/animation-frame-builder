@@ -124,15 +124,34 @@ export class RightPanelScene extends Phaser.Scene
     {
         if (!event.event.ctrlKey) return;
 
+        const parent = this.game.canvas.parentElement;
+        if (!parent) return;
+
+        const oldZoom = this.game.scale.zoom;
+        let newZoom = oldZoom;
+
         if (event.deltaY > 0)
         {
-            const currentZoom = this.game.scale.zoom;
-            this.game.scale.setZoom(Phaser.Math.Clamp(currentZoom * 0.5, 1, 16));
+            newZoom = Phaser.Math.Clamp(oldZoom * 0.5, 1, 64);
         }
         else if (event.deltaY < 0)
         {
-            const currentZoom = this.game.scale.zoom;
-            this.game.scale.setZoom(Phaser.Math.Clamp(currentZoom * 2, 1, 16));
+            newZoom = Phaser.Math.Clamp(oldZoom * 2, 1, 64);
+        }
+
+        if (newZoom !== oldZoom)
+        {
+            const canvas = this.game.canvas;
+            const oldCanvasOffset = canvas.offsetLeft;
+
+            this.game.scale.setZoom(newZoom);
+
+            // On compense l'agrandissement des pixels (event.x * diff)
+            // ET le changement de marge causé par autoCenter (new - old offset)
+            const newCanvasOffset = canvas.offsetLeft;
+            
+            parent.scrollLeft += event.x * (newZoom - oldZoom) + (newCanvasOffset - oldCanvasOffset);
+            parent.scrollTop += event.y * (newZoom - oldZoom);
         }
     }
 

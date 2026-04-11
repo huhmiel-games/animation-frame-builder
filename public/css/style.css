@@ -144,6 +144,7 @@ ul li button {
 .floating-canvas {
     position: fixed;
     background-image: unset;
+    pointer-events: none;
 }
 
 .inline-label {
