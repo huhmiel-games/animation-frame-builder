@@ -1,26 +1,21 @@
-import localforage from "localforage";
 import type { App } from "./App";
 import type { RightPanelScene } from "./rightPanelScene";
 import { FrameListElement } from "./FrameListElement";
 import { TProjectData } from "./models/TProjectData";
 import { deleteButtonSVG } from "./constant";
+import { DatabaseService } from "./DatabaseService";
 
 export class ProjectManager
 {
     private app: App;
-    private store: LocalForage;
-
+    private db: DatabaseService;
 
     constructor(app: App)
     {
         this.app = app;
+        this.db = new DatabaseService();
         this.bind();
         this.addEventListeners();
-        this.store = localforage.createInstance({
-            name: 'AnimationFrameBuilder',
-            storeName: 'projects',
-            description: 'Store project data'
-        });
         this.restoreLastSession();
     }
 
@@ -33,20 +28,20 @@ export class ProjectManager
 
     private addEventListeners()
     {
-        document.getElementById('save-project')?.addEventListener('click', this.saveProject);
-        document.getElementById('open-project')?.addEventListener('click', this.handleOpenProjectClick);
+        this.app.gui.saveProjectBtn?.addEventListener('click', this.saveProject);
+        this.app.gui.openProjectBtn?.addEventListener('click', this.handleOpenProjectClick);
     }
 
     private async saveProject()
     {
         const scene = this.app.game.scene.getScene('RightPanelScene') as RightPanelScene;
-        const projectName = (document.getElementById('name') as HTMLInputElement).value || 'img';
+        const projectName = this.app.gui.nameInput.value || 'img';
 
         // Convert the reference image to DataURL if it exists
         let referenceImageUri = "";
         if (this.app.image.isLoaded)
         {
-            referenceImageUri = this.app.imageCanvas.toDataURL();
+            referenceImageUri = this.app.gui.imageCanvas.toDataURL('image/png');
         }
 
         const projectData: TProjectData = {
@@ -55,12 +50,8 @@ export class ProjectManager
                 name: this.app.image.name
             } : null,
             settings: {
-                canvasWidth: this.app.widthInput.value,
-                canvasHeight: this.app.heightInput.value,
+                ...this.app.gui.getProjectSettings(),
                 grid: this.app.grid,
-                frameGridSize: this.app.frameGridSizeInput.value,
-                frameRate: this.app.rangeElm.value,
-                yoyo: (document.getElementById('yoyo') as HTMLInputElement)?.checked || false
             },
             frames: scene.frames.map((f) => ({
                 uri: f.uri,
@@ -71,87 +62,49 @@ export class ProjectManager
             }))
         };
 
-        // Save project data under its name
-        await this.store.setItem(projectName, projectData);
-        // Save only the name for the next session
-        await this.store.setItem('last_session', projectName);
+        await this.db.saveProject(projectName, projectData);
 
         alert(`Project "${projectName}" saved locally`);
     }
 
     private async handleOpenProjectClick(event: Event)
     {
-        console.log("opening project: ");
-        // On capture l'ID de la cible AVANT le await car l'event sera nettoyé après.
-        const targetId = 'modal-projects'; // (event.currentTarget as HTMLElement).getAttribute("data-target") || "";
         event.preventDefault();
+        const projectNames = await this.db.getAllProjectNames();
 
-        const keys = await this.store.keys();
-        const projectNames = keys.filter(key => key !== 'last_session');
-
-        const listContainer = document.getElementById('project-list-items');
-        if (!listContainer) return;
-
-        listContainer.innerHTML = '';
-
-        if (projectNames.length === 0)
-        {
-            listContainer.innerHTML = '<li>No saved project.</li>';
-        } 
-        else
-        {
-            projectNames.forEach(name =>
+        this.app.gui.renderProjectList(
+            projectNames,
+            async (name) =>
             {
-                const li = document.createElement('li');
-
-                const btn = document.createElement('button');
-                btn.textContent = name;
-                btn.classList.add('outline', 'secondary', 'flex-space-between');
-                btn.style.width = '100%';
-                btn.style.minWidth = '300px';
-                btn.style.textAlign = 'left';
-                btn.style.marginBottom = '10px';
-                btn.addEventListener('click', async () =>
+                const data = await this.db.getProject(name);
+                if (data)
                 {
-                    const data = await this.store.getItem<TProjectData>(name);
-                    if (data)
-                    {
-                        await this.restoreData(data);
-                        await this.store.setItem('last_session', name);
-                        (document.getElementById('name') as HTMLInputElement).value = name;
+                    await this.restoreData(data);
+                    await this.db.setLastProjectName(name);
+                    this.app.gui.nameInput.value = name;
+                    this.app.gui.modalProjects.open = false;
+                }
+            },
+            async (name, e) =>
+            {
+                await this.removeProject(e, name);
+            },
+            deleteButtonSVG
+        );
 
-                        // Fermer la modale manuellement après sélection
-                        const modal = document.getElementById('modal-projects') as HTMLDialogElement;
-                        if (modal) modal.open = false;
-                    }
-                }, { once: true });
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.title = `Delete project`;
-                deleteBtn.role = "button";
-                deleteBtn.classList.add('right');
-                deleteBtn.innerHTML = deleteButtonSVG;
-                deleteBtn.addEventListener('click', (event) => this.removeProject(event, name), { once: true });
-
-                btn.appendChild(deleteBtn);
-                li.appendChild(btn);
-                listContainer.appendChild(li);
-            });
-        }
-
-        this.app.openModal(targetId);
+        this.app.gui.openModal('modal-projects');
     }
 
     private async restoreLastSession()
     {
-        const lastProjectName = await this.store.getItem<string>('last_session');
+        const lastProjectName = await this.db.getLastProjectName();
         if (lastProjectName)
         {
-            const data = await this.store.getItem<TProjectData>(lastProjectName);
+            const data = await this.db.getProject(lastProjectName);
             if (data)
             {
                 this.restoreData(data);
-                (document.getElementById('name') as HTMLInputElement).value = lastProjectName;
+                this.app.gui.nameInput.value = lastProjectName;
             }
         }
     }
@@ -167,20 +120,8 @@ export class ProjectManager
         // Restore Settings
         if (data.settings)
         {
-            this.app.widthInput.value = data.settings.canvasWidth;
-            this.app.heightInput.value = data.settings.canvasHeight;
             this.app.grid = data.settings.grid;
-            this.app.frameGridSizeInput.value = data.settings.frameGridSize || "8";
-
-            // UI grid sync
-            this.app.gridSnapInput.checked = this.app.grid.isEnabled;
-            this.app.gridWidthInput.value = this.app.grid.width.toString();
-            this.app.gridHeightInput.value = this.app.grid.height.toString();
-            this.app.gridOffXInput.value = this.app.grid.offsetX.toString();
-            this.app.gridOffYInput.value = this.app.grid.offsetY.toString();
-
-            this.app.rangeElm.value = data.settings.frameRate;
-            (document.getElementById('yoyo') as HTMLInputElement).checked = data.settings.yoyo;
+            this.app.gui.applyProjectSettings(data.settings);
 
             this.app.startPhaser();
             this.app.updateGridState();
@@ -199,7 +140,7 @@ export class ProjectManager
             scene.frames = [];
             scene.count = 0;
             this.app.framesInstance = [];
-            document.getElementById('frame-list')!.innerHTML = '';
+            this.app.gui.frameList!.innerHTML = '';
 
             // Restore Frames
             for (let i = 0; i < data.frames.length; i++)
@@ -223,10 +164,8 @@ export class ProjectManager
     {
         event.stopPropagation();
 
-        await this.store.removeItem(name);
-
-        const modal = document.getElementById('modal-projects') as HTMLDialogElement;
-        if (modal) modal.open = false;
+        await this.db.deleteProject(name);
+        this.app.gui.modalProjects.open = false;
         
         this.handleOpenProjectClick(event);
     }

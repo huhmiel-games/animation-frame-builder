@@ -1,6 +1,7 @@
 import Phaser from "phaser";
-import { pauseButtonSVG, playButtonSVG } from "./constant";
 import { TFrame } from "./models/TFrame";
+import { App } from "./App";
+import type { FileService } from "./FileService";
 
 export class RightPanelScene extends Phaser.Scene
 {
@@ -9,28 +10,25 @@ export class RightPanelScene extends Phaser.Scene
     anim: Phaser.Animations.Animation;
     count = 0;
     selectedAnimationName: string | null = null;
-    playBtn: HTMLButtonElement;
-    private targetDirectory: string | null = null;
-    selectAnimElement: HTMLSelectElement;
-    gridCanvasRight: HTMLCanvasElement;
+    private app: App;
+    private fileService: FileService;
 
     constructor()
     {
         super({
             key: 'RightPanelScene',
         });
-        this.playBtn = document.getElementById('play-anim') as HTMLButtonElement;
         this.handleWheel = this.handleWheel.bind(this);
         this.changeFrameRate = this.changeFrameRate.bind(this);
         this.offsetXY = this.offsetXY.bind(this);
         this.saveAssets = this.saveAssets.bind(this);
         this.toggleFrame = this.toggleFrame.bind(this);
         this.moveFrame = this.moveFrame.bind(this);
-        this.handleAnimationSelectChange = this.handleAnimationSelectChange.bind(this);
         this.syncGridMargins = this.syncGridMargins.bind(this);
-
-        this.selectAnimElement = document.getElementById('select-anim') as HTMLSelectElement;
-        this.gridCanvasRight = document.getElementById('gridCanvasRight') as HTMLCanvasElement;
+        this.setSelectedAnimation = this.setSelectedAnimation.bind(this);
+    }
+    init() {
+        this.app = (this.game as any).app;
     }
 
     public preload()
@@ -50,8 +48,8 @@ export class RightPanelScene extends Phaser.Scene
 
     public create()
     {
+        this.fileService = this.app.fileService; // Get FileService from App
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, this.handleWheel);
-        this.selectAnimElement.addEventListener('change', this.handleAnimationSelectChange);
 
         // Synchronisation automatique des marges quand Phaser redimensionne ou recentre
         this.scale.on(Phaser.Scale.Events.RESIZE, this.syncGridMargins);
@@ -161,8 +159,9 @@ export class RightPanelScene extends Phaser.Scene
 
                 const newCanvasOffset = canvas.offsetLeft;
 
-                this.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
-                this.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
+                // App.ts will handle updating gui.gridCanvasRight based on syncGridMargins event
+                // this.app.gui.gridCanvasRight.style.width = this.scale.width * newZoom + 'px';
+                // this.app.gui.gridCanvasRight.style.height = this.scale.height * newZoom + 'px';
 
                 // pointer.x/y sont les positions relatives internes au canvas
                 parent.scrollLeft += pointer.x * (newZoom - oldZoom) + (newCanvasOffset - oldCanvasOffset);
@@ -182,26 +181,23 @@ export class RightPanelScene extends Phaser.Scene
         }
     }
 
-    private syncGridMargins()
+    public syncGridMargins()
     {
         const gameCanvas = this.game.canvas;
-        if (!this.gridCanvasRight || !gameCanvas) return;
+        if (!gameCanvas) return;
 
         // On attend le prochain cycle pour garantir que le navigateur a calculé 
         // la position finale du canvas de Phaser (évite le bug 141px vs 142px)
         requestAnimationFrame(() =>
         {
-            // On s'aligne sur les pixels INTERNES (le contenu) du canvas de jeu.
-            // offsetLeft est le bord extérieur de la bordure; +1px nous place sur le premier pixel.
-            this.gridCanvasRight.style.left = (gameCanvas.offsetLeft + 1) + 'px';
-            this.gridCanvasRight.style.top = (gameCanvas.offsetTop + 1) + 'px';
+            this.events.emit('sync-ui-grid', gameCanvas.offsetLeft, gameCanvas.offsetTop, this.game.scale.zoom);
         });
     }
 
-    private rebuildAnimation()
+    public rebuildAnimation()
     {
-        const frameRate = this.anim?.frameRate || 8;
-        const yoyo = this.anim?.yoyo || false;
+        const frameRate = +this.app.gui.rangeElm.value || 8;
+        const yoyo = this.app.gui.yoyoInput?.checked || false;
         let isPlaying: boolean = this.sprite?.anims.isPlaying;
 
         if (this.anims.exists('anim'))
@@ -242,7 +238,7 @@ export class RightPanelScene extends Phaser.Scene
         if (isPlaying)
         {
             this.sprite?.anims.play('anim');
-            this.playBtn.innerHTML = playButtonSVG;
+            this.events.emit('animationStateChanged', true);
         }
         else if (this.sprite && (
             this.sprite.texture.key === '_DEFAULT' ||
@@ -255,6 +251,18 @@ export class RightPanelScene extends Phaser.Scene
             // on affiche la première frame de la sélection actuelle.
             this.sprite.setTexture(framesToPlay[0].key);
         }
+    }
+
+    public startAnimation() {
+        if (this.sprite && !this.sprite.anims.isPlaying) {
+            this.sprite.anims.play('anim');
+            this.events.emit('animationStateChanged', true);
+        }
+    }
+
+    public stopAnimation() {
+        this.sprite?.anims.stop();
+        this.events.emit('animationStateChanged', false);
     }
 
     public toggleFrame(idx: number, enabled: boolean)
@@ -292,7 +300,7 @@ export class RightPanelScene extends Phaser.Scene
 
     public changeFrameRate(value: number)
     {
-        this.anim.frameRate = value;
+        if (this.anim) this.anim.frameRate = value;
         this.sprite?.anims.play('anim');
     }
 
@@ -303,57 +311,41 @@ export class RightPanelScene extends Phaser.Scene
 
     public updateAnimationSelect()
     {
+        // Collect animation names
         const animationNames = new Set<string>();
         this.frames.forEach(frame =>
         {
             if (frame.name)
             {
                 animationNames.add(frame.name);
-            }
+            } // else if (frame.name === "") { animationNames.add("Unnamed"); } // Consider adding unnamed frames to a category
         });
-
-        const previousSelection = this.selectedAnimationName;
-
-        // Clear all options
-        this.selectAnimElement.innerHTML = '';
-
-        // Add "All Frames" option
-        const allOption = document.createElement('option');
-        allOption.value = "";
-        allOption.textContent = "All Frames";
-        this.selectAnimElement.appendChild(allOption);
 
         const sortedNames = Array.from(animationNames).sort();
-        let newSelection = ""; // Default back to All Frames if previous is lost
+        
+        // Emit event for App.ts to update the GUI select element
+        this.events.emit('animationListUpdated', sortedNames, this.selectedAnimationName || "");
 
-        sortedNames.forEach(name =>
-        {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            this.selectAnimElement.appendChild(option);
-            if (previousSelection === name)
-            {
-                newSelection = name;
-            }
-        });
-
-        this.selectedAnimationName = newSelection;
-        this.selectAnimElement.value = newSelection;
+        // Rebuild animation based on current selection
         this.rebuildAnimation();
     }
 
-    private handleAnimationSelectChange(event: Event)
+    public setSelectedAnimation(name: string) {
+        this.selectedAnimationName = name;
+        this.rebuildAnimation();
+    }
+
+    public async saveAllAssets()
     {
-        this.selectedAnimationName = (event.target as HTMLSelectElement).value;
-        this.rebuildAnimation();
+        this.fileService.clearTargetDirectory(); // Reset directory choice for a new export
+        this.saveAssets(0); // Start recursive saving
     }
 
-    public saveAssets(idx: number)
+    // This is now a private helper for saveAllAssets
+    private saveAssets(idx: number)
     {
         if (idx >= this.frames.length)
         {
-            this.targetDirectory = null;
             return;
         }
 
@@ -364,27 +356,7 @@ export class RightPanelScene extends Phaser.Scene
             return;
         }
 
-        const isNW = typeof (window as any).nw !== 'undefined';
-
-        // NW.js: Ask for directory once at the start
-        if (isNW && idx === 0 && !this.targetDirectory)
-        {
-            const selector = document.createElement('input');
-            selector.type = 'file';
-            selector.setAttribute('nwdirectory', '');
-            selector.onchange = (e: any) =>
-            {
-                if (selector.value)
-                {
-                    this.targetDirectory = selector.value;
-                    this.saveAssets(0); // Restart export with the directory selected
-                }
-            };
-            selector.click();
-            return;
-        }
-
-        const name = (document.getElementById('name') as HTMLInputElement).value || 'img';
+        const name = this.app.gui.nameInput.value || 'img';
         const key = this.frames[idx].animFrame.key;
 
         let frameName = this.frames[idx].name || '';
@@ -394,55 +366,28 @@ export class RightPanelScene extends Phaser.Scene
         }
 
         this.sprite?.setTexture(key, 0);
-        this.events.once(Phaser.Renderer.Events.RENDER, () =>
+        this.events.once(Phaser.Renderer.Events.RENDER, async () =>
         {
             const texture = this.game.canvas.toDataURL('image/png');
+            const fileName = `${name}${frameName}_${idx}`;
 
-            if (isNW && this.targetDirectory)
-            {
-                // Node.js direct file saving
-                const fs = (window as any).require('fs');
-                const path = (window as any).require('path');
-                const base64Data = texture.replace(/^data:image\/png;base64,/, "");
-                const fileName = `${name}${frameName}_${idx}.png`;
-                const fullPath = path.join(this.targetDirectory, fileName);
-
-                fs.writeFile(fullPath, base64Data, 'base64', (err: any) =>
-                {
-                    if (err) console.error("Failed to save image", err);
-                    this.saveAssets(idx + 1);
-                });
+            try {
+                await this.fileService.saveImage(texture, fileName);
+            } catch (error) {
+                console.error("Failed to save asset:", fileName, error);
+                // Optionally, emit an event to App.ts to show a notification
             }
-            else
+            
+            if (idx < this.frames.length - 1)
             {
-                // Standard Web download behavior
-                const xhr = new XMLHttpRequest();
-                xhr.responseType = 'blob';
-                xhr.onload = () =>
-                {
-                    let a = document.createElement('a');
-                    a.href = window.URL.createObjectURL(xhr.response);
-                    a.download = `${name}${frameName}_${idx}.png`;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    if (idx < this.frames.length - 1)
-                    {
-                        this.saveAssets(idx + 1);
-                    }
-                };
-                xhr.open('GET', texture);
-                xhr.send();
+                this.saveAssets(idx + 1);
             }
         }, this);
     }
 
     public removeFrame(idx: number)
     {
-        this.sprite.anims.stop();
-        const playBtn = document.getElementById('play-anim') as HTMLButtonElement;
-        playBtn.innerHTML = pauseButtonSVG;
+        this.stopAnimation(); // Stop animation and emit state change
         this.anim.removeFrameAt(idx);
         this.textures.removeKey(`img_${idx}`);
         this.frames.splice(idx, 1);

@@ -1,29 +1,13 @@
 import { config, pauseButtonSVG, playButtonSVG } from "./constant";
 import { FrameListElement } from "./FrameListElement";
 import { RightPanelScene } from "./rightPanelScene";
+import { Gui } from "./Gui";
 import type { TSelectedImageArea, TImage, TTileset, TGrid } from "./types";
+import { FileService } from "./FileService";
 
 export class App
 {
-    // Html elements
-    saveTilesetBtn = document.getElementById('save-tileset') as HTMLButtonElement;
-    imageElm = document.getElementById("image") as HTMLImageElement;
-    widthInput = document.getElementById('width') as HTMLInputElement;
-    heightInput = document.getElementById('height') as HTMLInputElement;
-    imageCanvas = document.getElementById('imageCanvas') as HTMLCanvasElement;
-    gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
-    gridCanvasRight = document.getElementById('gridCanvasRight') as HTMLCanvasElement;
-    redZone = document.getElementById("red-zone") as HTMLDivElement;
-    floatingCanvas = document.getElementById('floating-canvas') as HTMLCanvasElement;
-    leftPanel = document.getElementById('left-panel') as HTMLDivElement;
-    playBtn = document.getElementById('play-anim') as HTMLButtonElement;
-    rangeElm = document.getElementById('range') as HTMLInputElement;
-    gridSnapInput = document.getElementById('grid-snap') as HTMLInputElement;
-    gridWidthInput = document.getElementById('grid-width') as HTMLInputElement;
-    gridHeightInput = document.getElementById('grid-height') as HTMLInputElement;
-    gridOffXInput = document.getElementById('grid-offx') as HTMLInputElement;
-    gridOffYInput = document.getElementById('grid-offy') as HTMLInputElement;
-    frameGridSizeInput = document.getElementById('frame-grid-size') as HTMLInputElement;
+    public readonly gui = new Gui();
 
     // Data
     selectedImageArea: TSelectedImageArea = {
@@ -55,38 +39,55 @@ export class App
     };
 
     grid: TGrid = {
-        isEnabled: this.gridSnapInput.checked,
-        width: +this.gridWidthInput.value || 32,
-        height: +this.gridHeightInput.value || 32,
-        offsetX: +this.gridOffXInput.value || 0,
-        offsetY: +this.gridOffYInput.value || 0
+        isEnabled: this.gui.gridSnapInput.checked,
+        width: +this.gui.gridWidthInput.value || 32,
+        height: +this.gui.gridHeightInput.value || 32,
+        offsetX: +this.gui.gridOffXInput.value || 0,
+        offsetY: +this.gui.gridOffYInput.value || 0
     };
 
     game: Phaser.Game = new Phaser.Game(config);
+    fileService: FileService;
 
-    visibleModal: HTMLElement | null = null;
-    navbarHeight = document.querySelector('nav')?.clientHeight || 58;
     framesInstance: FrameListElement[] = [];
 
     constructor()
     {
         this.bind();
         this.addEventListeners();
-        const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
+        this.fileService = new FileService();
+        (this.game as any).app = this; // Shared instance for Phaser scenes
+
+        // Listen to Phaser scene events to sync HTML overlay
+        this.game.events.once('ready', () => {
+            const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
+            scene.events.on('sync-ui-grid', (x: number, y: number, zoom: number) => {
+                this.gui.gridCanvasRight.style.left = (x + 1) + 'px';
+                this.gui.gridCanvasRight.style.top = (y + 1) + 'px';
+                this.gui.gridCanvasRight.style.width = (+this.gui.widthInput.value * zoom) + 'px';
+                this.gui.gridCanvasRight.style.height = (+this.gui.heightInput.value * zoom) + 'px';
+            });
+            
+            // Synchronisation immédiate au démarrage
+            scene.syncGridMargins();
+
+            scene.events.on('animationStateChanged', (isPlaying: boolean) => {
+                this.gui.playBtn.innerHTML = isPlaying ? playButtonSVG : pauseButtonSVG;
+            });
+            scene.events.on('animationListUpdated', (names: string[], selected: string) => {
+                this.updateAnimationSelectUI(names, selected);
+            });
+        });
     }
 
     bind()
     {
         this.openImage = this.openImage.bind(this);
         this.openModal = this.openModal.bind(this);
-        this.closeModal = this.closeModal.bind(this);
         this.renderCanvas = this.renderCanvas.bind(this);
         this.onMouseWheel = this.onMouseWheel.bind(this);
         this.handleKeyPress = this.handleKeyPress.bind(this);
         this.resetSelection = this.resetSelection.bind(this);
-        this.resetRedZone = this.resetRedZone.bind(this);
-        this.setRedZoneSize = this.setRedZoneSize.bind(this);
-        this.placeRedZone = this.placeRedZone.bind(this);
         this.clamp = this.clamp.bind(this);
         this.resetZone = this.resetZone.bind(this);
         this.copy = this.copy.bind(this);
@@ -105,45 +106,45 @@ export class App
 
     addEventListeners()
     {
-        // Event listeners
-        document.getElementById('open-image')?.addEventListener('change', this.openImage, false);
-        document.getElementById('about-btn')?.addEventListener('click', this.openModal, false);
-        document.addEventListener('wheel', this.onMouseWheel, { passive: false });
-        (document.querySelectorAll('[id ^= "close-"]')).forEach(elm => elm.addEventListener('click', this.closeModal));
-        document.addEventListener('keydown', this.handleKeyPress);
-        this.imageCanvas.addEventListener('mousedown', this.onImageCanvasMouseDown, false);
-        this.imageCanvas.addEventListener('mouseup', this.onImageCanvasMouseUp, false);
-        this.imageCanvas.addEventListener('contextmenu', this.resetSelection, false);
-        this.leftPanel.addEventListener('mouseleave', (event) =>
-        {
-            if (this.selectedImageArea.isComplete || this.selectedImageArea.isDirty) return;
+        this.gui.bindAppEvents({
+            onOpenImage: (e: Event) => this.openImage(e),
+            onAboutClick: (e: Event) => this.openModal(e),
+            onWheel: (e: WheelEvent) => this.onMouseWheel(e),
+            onKeyDown: this.handleKeyPress,
+            onImageMouseDown: this.onImageCanvasMouseDown,
+            onImageMouseUp: this.onImageCanvasMouseUp,
+            onImageContextMenu: this.resetSelection,
+            onLeftPanelMouseLeave: (event: MouseEvent) => {
+                if (this.selectedImageArea.isComplete || this.selectedImageArea.isDirty) return;
+                this.gui.imageCanvas.removeEventListener('mousemove', this.handleMouseMove);
+            },
+            onSaveTilesetClick: this.downloadTilesetAsImage,
+            onCanvasSizeChange: this.startPhaser,
+            onPlayPauseClick: this.playOrPause,
+            onFrameRateChange: this.changeFrameRate,
+            onYoyoChange: this.setYoyo,
+            onGridStateChange: this.updateGridState,
+            onRightGridSizeInput: this.renderRightGrid,
+            onSelectAnimChange: (e: Event) => {
+                const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
+                scene.setSelectedAnimation((e.target as HTMLSelectElement).value);
+            }
+        }); // ProjectManager will bind its own events later
 
-            this.leftPanel.removeEventListener('mousemove', this.handleMouseMove);
-        });
-        this.saveTilesetBtn.addEventListener('click', this.downloadTilesetAsImage, false);
-        this.widthInput.addEventListener('change', this.startPhaser, false);
-        this.heightInput.addEventListener('change', this.startPhaser, false);
-        this.playBtn.addEventListener('click', this.playOrPause);
-        this.rangeElm.addEventListener('change', this.changeFrameRate);
-        document.getElementById('yoyo')?.addEventListener('change', this.setYoyo);
-        this.gridSnapInput.addEventListener('change', this.updateGridState);
-        this.gridWidthInput.addEventListener('input', this.updateGridState);
-        this.gridHeightInput.addEventListener('input', this.updateGridState);
-        this.gridOffXInput.addEventListener('input', this.updateGridState);
-        this.gridOffYInput.addEventListener('input', this.updateGridState);
-        this.frameGridSizeInput.addEventListener('input', this.renderRightGrid);
     }
 
     startPhaser()
     {
-        if (+this.widthInput.value !== 0 && +this.heightInput.value !== 0)
+        const w = +this.gui.widthInput.value;
+        const h = +this.gui.heightInput.value;
+        if (w !== 0 && h !== 0)
         {
-            config.width = +this.widthInput.value;
-            config.height = +this.heightInput.value;
+            config.width = w;
+            config.height = h;
             this.game.scale.resize(config.width, config.height);
             const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
-            scene.cameras.main.setViewport(0, 0, config.width, config.height);
-            scene.sprite?.setPosition(config.width / 2, config.height / 2);
+            scene.cameras.main.setViewport(0, 0, w, h);
+            scene.sprite?.setPosition(w / 2, h / 2);
             this.renderRightGrid();
         }
     }
@@ -153,28 +154,17 @@ export class App
         const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
         const anim = scene.anim;
         if (!anim) return;
-        anim.yoyo = event.target.checked;
-        scene.sprite?.anims.stop();
-        scene.sprite?.anims.play('anim');
+        anim.yoyo = (event.target as HTMLInputElement).checked;
+        scene.rebuildAnimation(); // Rebuild to apply yoyo change
     }
 
     playOrPause()
     {
         const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
-        const sprite = scene.sprite;
-        if (!sprite) return;
-        if (sprite.anims.isPlaying)
-        {
-            sprite.anims.stop();
-            this.playBtn.innerHTML = pauseButtonSVG;
-            return;
-        }
-
-        if (!sprite.anims.isPlaying)
-        {
-            sprite.anims.play('anim');
-            this.playBtn.innerHTML = playButtonSVG;
-            return;
+        if (scene.sprite?.anims.isPlaying) {
+            scene.stopAnimation();
+        } else {
+            scene.startAnimation();
         }
     }
 
@@ -186,50 +176,36 @@ export class App
 
     updateGridState()
     {
-        this.grid.isEnabled = this.gridSnapInput.checked;
-        this.grid.width = +this.gridWidthInput.value;
-        this.grid.height = +this.gridHeightInput.value;
-        this.grid.offsetX = +this.gridOffXInput.value;
-        this.grid.offsetY = +this.gridOffYInput.value;
+        this.grid.isEnabled = this.gui.gridSnapInput.checked; // This is for the left panel grid
+        this.grid.width = +this.gui.gridWidthInput.value; // This is for the left panel grid
+        this.grid.height = +this.gui.gridHeightInput.value; // This is for the left panel grid
+        this.grid.offsetX = +this.gui.gridOffXInput.value; // This is for the left panel grid
+        this.grid.offsetY = +this.gui.gridOffYInput.value; // This is for the left panel grid
         this.renderCanvas();
     }
 
     // Settings
-    openModal(event: Event | string)
+    openModal(event: Event | string): void
     {
-        let id: string | null = null;
-
         if (typeof event === 'string')
         {
-            id = event;
+            this.gui.openModal(event);
         }
         else
         {
-            event.preventDefault();
-            id = (event.currentTarget as HTMLElement).getAttribute("data-target");
+            const ev = event as Event;
+            ev.preventDefault();
+            const id = (ev.currentTarget as HTMLElement).getAttribute("data-target");
+            if (id) this.gui.openModal(id);
         }
-
-        const modal = id ? document.getElementById(id) as HTMLDialogElement : null;
-        if (modal)
-        {
-            modal.open = true;
-            this.visibleModal = modal;
-        }
-    }
-
-    closeModal(event)
-    {
-        this.visibleModal = null;
-        event.preventDefault();
-        const modal = document.getElementById(event.currentTarget.getAttribute("data-target")) as HTMLDialogElement;
-        modal.open = false;
     }
 
     // Image canvas
-    openImage(event)
+    openImage(event: Event): void
     {
-        const imageFiles = event.target.files;
-        const imageFilesLength = imageFiles.length;
+        const target = event.target as HTMLInputElement;
+        const imageFiles = target.files;
+        const imageFilesLength = imageFiles ? imageFiles.length : 0;
         if (imageFilesLength > 0)
         {
             const imageSrc = URL.createObjectURL(imageFiles[0]);
@@ -240,13 +216,13 @@ export class App
     public loadReferenceImage(uri: string, name: string)
     {
         this.image.name = name;
-        this.imageElm.src = uri;
-        this.imageElm.addEventListener("load", () =>
+        this.gui.imageElm.src = uri;
+        this.gui.imageElm.addEventListener("load", () =>
         {
-            this.image.width = this.imageElm.naturalWidth;
-            this.image.height = this.imageElm.naturalHeight;
-            this.imageCanvas.classList.remove('none');
-            this.gridCanvas.classList.remove('none');
+            this.image.width = this.gui.imageElm.naturalWidth;
+            this.image.height = this.gui.imageElm.naturalHeight;
+            this.gui.imageCanvas.classList.remove('none');
+            this.gui.gridCanvas.classList.remove('none');
             this.image.isLoaded = true;
             this.renderCanvas();
         }, { once: true });
@@ -259,20 +235,20 @@ export class App
     {
         if (!this.image.isLoaded) return;
 
-        const ctx = this.imageCanvas.getContext("2d");
-        const gridCtx = this.gridCanvas.getContext("2d");
+        const ctx = this.gui.imageCanvas.getContext("2d");
+        const gridCtx = this.gui.gridCanvas.getContext("2d");
         if (!ctx || !gridCtx) return;
 
         // Sync canvas dimensions with image natural size
-        this.imageCanvas.width = this.image.width;
-        this.imageCanvas.height = this.image.height;
-        this.gridCanvas.width = this.image.width;
-        this.gridCanvas.height = this.image.height;
+        this.gui.imageCanvas.width = this.image.width;
+        this.gui.imageCanvas.height = this.image.height;
+        this.gui.gridCanvas.width = this.image.width;
+        this.gui.gridCanvas.height = this.image.height;
 
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(this.imageElm, 0, 0);
+        ctx.drawImage(this.gui.imageElm, 0, 0);
 
-        gridCtx.clearRect(0, 0, this.gridCanvas.width, this.gridCanvas.height);
+        gridCtx.clearRect(0, 0, this.gui.gridCanvas.width, this.gui.gridCanvas.height);
 
         // If custom grid is disabled, we show a subtle 8x8 white grid
         const width = this.grid.isEnabled ? this.grid.width : 8;
@@ -286,26 +262,26 @@ export class App
 
     renderRightGrid()
     {
-        const gridCtx = this.gridCanvasRight.getContext("2d");
+        const gridCtx = this.gui.gridCanvasRight.getContext("2d");
         if (!gridCtx) return;
 
-        const w = +this.widthInput.value;
-        const h = +this.heightInput.value;
+        const w = +this.gui.widthInput.value;
+        const h = +this.gui.heightInput.value;
 
-        this.gridCanvasRight.width = w;
-        this.gridCanvasRight.height = h;
-        this.gridCanvasRight.classList.remove('none');
+        this.gui.gridCanvasRight.width = w;
+        this.gui.gridCanvasRight.height = h;
+        this.gui.gridCanvasRight.classList.remove('none');
 
         // Synchronisation de la taille d'affichage avec le zoom actuel de Phaser
         const zoom = this.game.scale.zoom;
-        this.gridCanvasRight.style.width = w * zoom + 'px';
-        this.gridCanvasRight.style.height = h * zoom + 'px';
-        this.gridCanvasRight.style.display = 'block';
+        this.gui.gridCanvasRight.style.width = w * zoom + 'px';
+        this.gui.gridCanvasRight.style.height = h * zoom + 'px';
+        this.gui.gridCanvasRight.style.display = 'block';
 
         gridCtx.clearRect(0, 0, w, h);
 
         // La grille de droite est indépendante : carrée et sans offset
-        const gridSize = +this.frameGridSizeInput.value || 8;
+        const gridSize = +this.gui.frameGridSizeInput.value || 8;
         const color = "rgba(255, 0, 195, 0.35)";
 
         this.drawGrid(gridCtx, gridSize, gridSize, 0, 0, color, w, h);
@@ -339,7 +315,7 @@ export class App
 
     async copy()
     {
-        const imageCtx = this.imageCanvas.getContext('2d');
+        const imageCtx = this.gui.imageCanvas.getContext('2d');
         if (!imageCtx) return;
 
         try
@@ -357,16 +333,16 @@ export class App
             return;
         }
 
-        this.floatingCanvas.width = +this.widthInput.value;
-        this.floatingCanvas.height = +this.heightInput.value;
+        this.gui.floatingCanvas.width = +this.gui.widthInput.value;
+        this.gui.floatingCanvas.height = +this.gui.heightInput.value;
 
-        const posX = this.floatingCanvas.width / 2 - this.selectedImageArea.data.width / 2;
-        const posY = this.floatingCanvas.height / 2 - this.selectedImageArea.data.height / 2;
+        const posX = this.gui.floatingCanvas.width / 2 - this.selectedImageArea.data.width / 2;
+        const posY = this.gui.floatingCanvas.height / 2 - this.selectedImageArea.data.height / 2;
 
-        const ctx = this.floatingCanvas.getContext('2d');
+        const ctx = this.gui.floatingCanvas.getContext('2d');
         ctx?.putImageData(this.selectedImageArea.data, posX, posY);
 
-        const copiedImage = this.floatingCanvas.toDataURL();
+        const copiedImage = this.gui.floatingCanvas.toDataURL();
         const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
         const id = await scene.loadImage(copiedImage);
         const newFrame = new FrameListElement(id, copiedImage, scene, this.framesInstance);
@@ -416,7 +392,10 @@ export class App
         this.selectedImageArea.ex = finalX * this.image.zoom;
         this.selectedImageArea.ey = finalY * this.image.zoom;
 
-        this.setRedZoneSize(this.selectedImageArea);
+        this.gui.setRedZoneSize(
+            Math.abs(this.selectedImageArea.ex - this.selectedImageArea.sx),
+            Math.abs(this.selectedImageArea.ey - this.selectedImageArea.sy)
+        );
     }
 
     onImageCanvasMouseDown(event: MouseEvent)
@@ -445,11 +424,10 @@ export class App
         this.selectedImageArea.sy = finalY * this.image.zoom;
 
         this.selectedImageArea.isDirty = true;
-        this.redZone.style.width = '0px';
-        this.redZone.style.height = '0px';
+        this.gui.setRedZoneSize(0, 0);
 
-        this.placeRedZone(this.selectedImageArea.sx, this.selectedImageArea.sy);
-        this.imageCanvas.addEventListener('mousemove', this.handleMouseMove, { once: false });
+        this.gui.setRedZonePosition(this.selectedImageArea.sx, this.selectedImageArea.sy);
+        this.gui.imageCanvas.addEventListener('mousemove', this.handleMouseMove, { once: false });
     }
 
     onImageCanvasMouseUp(event: MouseEvent)
@@ -478,56 +456,24 @@ export class App
         this.selectedImageArea.ey = finalY * this.image.zoom;
 
         this.selectedImageArea.isComplete = true;
-        this.setRedZoneSize(this.selectedImageArea);
+        this.gui.setRedZoneSize(Math.abs(this.selectedImageArea.ex - this.selectedImageArea.sx), Math.abs(this.selectedImageArea.ey - this.selectedImageArea.sy));
         this.copy();
-        this.imageCanvas.removeEventListener('mousemove', this.handleMouseMove);
+        this.gui.imageCanvas.removeEventListener('mousemove', this.handleMouseMove);
     }
 
     downloadTilesetAsImage()
     {
         const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
-        scene.saveAssets(0);
-    }
-
-    // Red zone
-    placeRedZone(x_pos: string | number, y_pos: string | number)
-    {
-        if (this.selectedImageArea.isComplete) return;
-        this.redZone.style.left = x_pos + 'px';
-        this.redZone.style.top = y_pos + 'px';
-    }
-
-    setRedZoneSize(zone: TSelectedImageArea)
-    {
-        const x = Math.abs(zone.ex - zone.sx);
-        const y = Math.abs(zone.ey - zone.sy);
-
-        if (this.redZone.style.width !== x + 'px')
-        {
-            this.redZone.style.width = x + 'px';
-        }
-
-        if (this.redZone.style.height !== y + 'px')
-        {
-            this.redZone.style.height = y + 'px';
-        }
-    }
-
-    resetRedZone()
-    {
-        this.redZone.style.width = '0px';
-        this.redZone.style.height = '0px';
-        this.redZone.style.left = '0px';
-        this.redZone.style.top = '0px';
+        scene.saveAllAssets();
     }
 
     // Zoom
-    onMouseWheel(event)
+    onMouseWheel(event: WheelEvent): void
     {
         if (event.ctrlKey) event.preventDefault();
 
         // zoom image
-        if (event.ctrlKey && event.target.id === 'imageCanvas' && this.image.isLoaded)
+        if (event.ctrlKey && (event.target as HTMLElement)?.id === 'imageCanvas' && this.image.isLoaded)
         {
             if (this.selectedImageArea.isComplete)
             {
@@ -535,28 +481,28 @@ export class App
             }
 
             let scrollX: number, scrollY: number;
-            if (event.wheelDelta > 0)
+            if (event.deltaY < 0) // Zoom In (Scroll Up)
             {
                 if (this.image.zoom === 64) return;
                 this.image.zoom = this.clamp(this.image.zoom * 2, 0, 64);
                 scrollX = (event.offsetX - event.clientX / 2) * 2;
-                scrollY = (event.offsetY - (event.clientY - this.navbarHeight) / 2) * 2;
+                scrollY = (event.offsetY - (event.clientY - this.gui.navbarHeight) / 2) * 2;
 
             }
-            else if (event.wheelDelta < 0)
+            else if (event.deltaY > 0) // Zoom Out (Scroll Down)
             {
                 if (this.image.zoom < 0.02) return;
                 this.image.zoom /= 2;
                 scrollX = (event.offsetX - event.clientX * 2) / 2;
-                scrollY = (event.offsetY - (event.clientY - this.navbarHeight) * 2) / 2;
+                scrollY = (event.offsetY - (event.clientY - this.gui.navbarHeight) * 2) / 2;
             }
 
-            this.imageCanvas.style.width = this.image.width * this.image.zoom + 'px';
-            this.imageCanvas.style.height = this.image.height * this.image.zoom + 'px';
-            this.gridCanvas.style.width = this.image.width * this.image.zoom + 'px';
-            this.gridCanvas.style.height = this.image.height * this.image.zoom + 'px';
+            this.gui.imageCanvas.style.width = this.image.width * this.image.zoom + 'px';
+            this.gui.imageCanvas.style.height = this.image.height * this.image.zoom + 'px';
+            this.gui.gridCanvas.style.width = this.image.width * this.image.zoom + 'px';
+            this.gui.gridCanvas.style.height = this.image.height * this.image.zoom + 'px';
             this.renderCanvas();
-            this.leftPanel.scroll(scrollX, scrollY);
+            this.gui.leftPanel.scroll(scrollX, scrollY);
         }
     }
 
@@ -592,7 +538,29 @@ export class App
         event.stopPropagation();
         event.preventDefault();
         this.resetZone();
-        this.resetRedZone();
+        this.gui.setRedZoneSize(0, 0);
         this.selectedImageArea.isComplete = false;
+    }
+
+    /**
+     * Updates the animation select dropdown in the GUI.
+     * This method is called by RightPanelScene via an event.
+     */
+    private updateAnimationSelectUI(animationNames: string[], selectedName: string) {
+        this.gui.selectAnim.innerHTML = ''; // Clear all options
+
+        const allOption = document.createElement('option');
+        allOption.value = "";
+        allOption.textContent = "All Frames";
+        this.gui.selectAnim.appendChild(allOption);
+
+        animationNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            this.gui.selectAnim.appendChild(option);
+        });
+
+        this.gui.selectAnim.value = selectedName;
     }
 }
