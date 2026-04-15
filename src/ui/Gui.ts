@@ -223,13 +223,13 @@ export class Gui {
     }) {
         const li = document.createElement('li');
         li.id = id.toString();
-        li.classList.add('frame-list');
+        li.classList.add('frame-list', 'flex');
         li.textContent = `${id}-   `;
         li.addEventListener('click', callbacks.onSelect);
 
         const offsetXInput = this.createInternalInput('number', ['input-number', 'text-light'], `offsetX_${id}`, '0', callbacks.onOffsetChange);
         const offsetYInput = this.createInternalInput('number', ['input-number', 'text-light'], `offsetY_${id}`, '0', callbacks.onOffsetChange);
-        const nameInput = this.createInternalInput('text', ['input-name', 'text-light'], `name_${id}`, '', (e) => callbacks.onNameInput((e.target as HTMLInputElement).value));
+        const nameInput = this.createInternalInput('text', ['input-name', 'text-light', 'input-anim-name'], `name_${id}`, '', (e) => callbacks.onNameInput((e.target as HTMLInputElement).value));
 
         const enabledInput = document.createElement('input');
         enabledInput.type = 'checkbox';
@@ -239,7 +239,7 @@ export class Gui {
 
         const upBtn = this.createInternalButton('↑', 'Up', callbacks.onMoveUp);
         const downBtn = this.createInternalButton('↓', 'Down', callbacks.onMoveDown);
-        const deleteBtn = this.createInternalButton(deleteButtonSVG, 'Delete frame', callbacks.onDelete, ['right']);
+        const deleteBtn = this.createInternalButton(deleteButtonSVG, 'Delete frame', callbacks.onDelete, []);
 
         // Assembly
         const spanEnabled = document.createElement('span');
@@ -250,12 +250,14 @@ export class Gui {
         spanUpDownButtons.append(upBtn, downBtn);
 
         const spanX = document.createElement('span');
+        spanX.classList.add('right');
         spanX.append(this.createInternalLabel('X: ', 'frame offset x', ['inline-label', 'text-light']), offsetXInput);
 
         const spanY = document.createElement('span');
         spanY.append(this.createInternalLabel('Y: ', 'frame offset y', ['inline-label', 'text-light']), offsetYInput);
 
         const spanName = document.createElement('span');
+        spanName.classList.add('flex', 'span-input-name');
         spanName.append(this.createInternalLabel('Anim: ', 'animation name', ['inline-label', 'text-light']), nameInput);
 
         li.append(spanEnabled, spanUpDownButtons, spanName, spanX, spanY, deleteBtn);

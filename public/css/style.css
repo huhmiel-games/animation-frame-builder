@@ -52,6 +52,10 @@ ul li button {
     margin-bottom: 0;
 }
 
+.flex {
+    display: flex;
+}
+
 .full-height-container {
     display: flex;
     position: fixed;
@@ -211,8 +215,13 @@ textarea {
 }
 
 .input-name {
-    width: 6rem !important;
+    width: 100% !important;
     padding: 1px !important;
+}
+
+.span-input-name {
+    margin-right: auto;
+    width: 56%;
 }
 
 :where(dl, ol, ul) {

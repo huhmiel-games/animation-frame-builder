@@ -73,9 +73,24 @@ else
     echo "[5/5] appimagetool déjà présent"
 fi
 
-# 7. Créer l'AppImage
+# 7. Créer l'AppImage et la copier dans dist/output
 echo "=== Génération de l'AppImage ==="
 ARCH=x86_64 ./appimagetool "$APPDIR" "${APP_NAME}-x86_64.AppImage"
+mkdir -p dist/output
+cp "${APP_NAME}-x86_64.AppImage" dist/output/
+
+# 8. Renommer le dossier dist/animation-frame-builder/win64 en animation-frame-builder_win64
+echo "[8] Renommage du dossier win64..."
+if [ -d "dist/${ORIGINAL_EXE}/win64" ]; then
+    mv "dist/${ORIGINAL_EXE}/win64" "dist/${ORIGINAL_EXE}_win64"
+fi
+
+# 9. Zipper le dossier animation-frame-builder_win64 et copier le zip dans output
+echo "[9] Création de l'archive ZIP pour Windows..."
+if [ -d "dist/${ORIGINAL_EXE}_win64" ]; then
+    (cd dist && zip -q -r "output/${APP_NAME}_win64.zip" "${ORIGINAL_EXE}_win64")
+    echo "   Archive ZIP créée dans dist/output/"
+fi
 
 echo ""
 echo "✅ AppImage créée avec succès!"

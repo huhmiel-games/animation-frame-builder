@@ -129,6 +129,11 @@ export class App
 
     }
 
+    newProject()
+    {
+        // todo, clear image on left panel, clear phaser canvas, clear phaser animation, clear all frames
+    }
+
     startPhaser()
     {
         const w = +this.gui.widthInput.value;
