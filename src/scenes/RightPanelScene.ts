@@ -403,4 +403,24 @@ export class RightPanelScene extends Phaser.Scene
             this.sprite?.setTexture('_DEFAULT');
         }
     }
+
+    public clearScene()
+    {
+        this.stopAnimation();
+
+        // Supprimer toutes les textures de frames
+        this.frames.forEach((_, i) => {
+            if (this.textures.exists(`img_${i}`)) {
+                this.textures.removeKey(`img_${i}`);
+            }
+        });
+
+        this.frames = [];
+        this.count = 0;
+        this.selectedAnimationName = "";
+
+        this.sprite?.setTexture('__DEFAULT');
+        this.updateAnimationSelect();
+        this.syncGridMargins();
+    }
 }

@@ -120,18 +120,39 @@ export class App
             onYoyoChange: this.setYoyo,
             onGridStateChange: this.updateGridState,
             onRightGridSizeInput: this.renderRightGrid,
+            onNewProjectClick: () => this.newProject(),
             onSelectAnimChange: (e: Event) =>
             {
                 const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
                 scene.setSelectedAnimation((e.target as HTMLSelectElement).value);
             }
         }); // ProjectManager will bind its own events later
-
     }
 
     newProject()
     {
-        // todo, clear image on left panel, clear phaser canvas, clear phaser animation, clear all frames
+        // 1. Reset state
+        this.image.isLoaded = false;
+        this.image.name = '';
+        this.framesInstance = [];
+
+        // 2. Clear Left Panel UI
+        const ctx = this.gui.imageCanvas.getContext('2d');
+        ctx?.clearRect(0, 0, this.gui.imageCanvas.width, this.gui.imageCanvas.height);
+        this.gui.imageCanvas.width = 0;
+        this.gui.imageCanvas.height = 0;
+
+        // clear red zone
+        this.gui.redZone.style.width = '0px';
+        this.gui.redZone.style.height = '0px';
+
+        // 3. Clear Right Panel UI
+        this.gui.frameList.innerHTML = '';
+        this.gui.nameInput.value = '';
+
+        // 4. Clear Phaser Scene
+        const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
+        scene.clearScene();
     }
 
     startPhaser()

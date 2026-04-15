@@ -31,6 +31,7 @@ export class Gui {
     public readonly nameInput = document.getElementById('name') as HTMLInputElement;
 
     // Project & Modal Elements
+    public readonly newProjectBtn = document.getElementById('new-project') as HTMLButtonElement;
     public readonly saveProjectBtn = document.getElementById('save-project') as HTMLButtonElement;
     public readonly openProjectBtn = document.getElementById('open-project') as HTMLButtonElement;
     public readonly projectListItems = document.getElementById('project-list-items');
@@ -61,7 +62,8 @@ export class Gui {
         onGridStateChange: () => void,
         onRightGridSizeInput: () => void,
         onSaveProjectClick?: () => void, // Handled by ProjectManager
-        onOpenProjectClick?: (event: Event) => void, // Handled by ProjectManager
+        onOpenProjectClick?: (event: Event) => void,
+        onNewProjectClick?: () => void,
         onSelectAnimChange?: (event: Event) => void // Handled by App
     }) {
         document.getElementById('open-image')?.addEventListener('change', callbacks.onOpenImage);
@@ -91,6 +93,10 @@ export class Gui {
         this.gridOffXInput.addEventListener('input', callbacks.onGridStateChange);
         this.gridOffYInput.addEventListener('input', callbacks.onGridStateChange);
         this.frameGridSizeInput.addEventListener('input', callbacks.onRightGridSizeInput);
+
+        if (callbacks.onNewProjectClick) {
+            this.newProjectBtn?.addEventListener('click', callbacks.onNewProjectClick);
+        }
 
         if (callbacks.onSelectAnimChange) {
             this.selectAnim.addEventListener('change', callbacks.onSelectAnimChange);

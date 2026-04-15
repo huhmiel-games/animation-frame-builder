@@ -1,5 +1,6 @@
 {
   "name": "animation-frame-builder",
+  "version": "1.0.1",
   "scripts": {
     "start": "node ./esbuild/dev.cjs",
     "build": "node ./esbuild/build.cjs && cp -r ./public/* ./build/ ",
