@@ -5,33 +5,39 @@ APP_NAME="AnimationFrameBuilder"
 ORIGINAL_EXE="animation-frame-builder"
 SRC_DIR="dist/${ORIGINAL_EXE}/linux64"
 APPDIR="dist/AppDir"
-ICON_FILE="icon.png"  # Placez votre icône 256x256 dans le dossier racine
+ICON_FILE="icon.png"  # Place your 256x256 icon in the root folder
 
-echo "=== Création de l'AppImage pour ${APP_NAME} ==="
+# Variables
+IS_APPIMAGE_GENERATED=0
+IS_ZIP_GENERATED=0
 
-# 1. Nettoyer l'ancien AppDir
+
+# // BUILD LINUX
+echo "=== Creating AppImage for ${APP_NAME} ==="
+
+# 1. Clean old AppDir
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/share/applications"
 mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-# 2. Copier les fichiers de l'application
-echo "[1/5] Copie des fichiers..."
+# 2. Copy application files
+echo "[1/5] Copying files..."
 cp -r "$SRC_DIR"/* "$APPDIR/"
 
-# 3. Renommer l'exécutable NW.js
-echo "[2/5] Configuration de l'exécutable..."
+# 3. Rename NW.js executable
+echo "[2/5] Configuring executable..."
 if [ -f "$APPDIR/${ORIGINAL_EXE}" ]; then
     chmod +x "$APPDIR/${ORIGINAL_EXE}"
     if [ "${ORIGINAL_EXE}" != "${APP_NAME}" ]; then
         mv "$APPDIR/${ORIGINAL_EXE}" "$APPDIR/$APP_NAME"
     fi
 else
-    echo "Erreur: Exécutable NW.js non trouvé (${ORIGINAL_EXE})!"
+    echo "Error: NW.js executable not found (${ORIGINAL_EXE})!"
     exit 1
 fi
 
-# 4. Créer le fichier AppRun
-echo "[3/5] Création du fichier AppRun..."
+# 4. Create AppRun file
+echo "[3/5] Creating AppRun file..."
 cat > "$APPDIR/AppRun" <<APPRUNEOF
 #!/bin/bash
 HERE="\$(dirname "\$(readlink -f "\${0}")")"
@@ -40,8 +46,8 @@ exec "\${HERE}/${APP_NAME}" "\$@"
 APPRUNEOF
 chmod +x "$APPDIR/AppRun"
 
-# 4. Créer le fichier .desktop
-echo "[4/5] Création du fichier .desktop..."
+# 4. Create .desktop file
+echo "[4/5] Creating .desktop file..."
 cat > "$APPDIR/$APP_NAME.desktop" <<EOF
 [Desktop Entry]
 Name=$APP_NAME
@@ -52,47 +58,77 @@ Categories=Development;
 StartupNotify=true
 EOF
 
-# 5. Copier l'icône (si présente)
+# 5. Copy icon (if present)
 if [ -f "$ICON_FILE" ]; then
     # Get the extension of the icon file
     ICON_EXT="${ICON_FILE##*.}"
     cp "$ICON_FILE" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.$ICON_EXT"
     cp "$ICON_FILE" "$APPDIR/$APP_NAME.$ICON_EXT"
     cp "$ICON_FILE" "$APPDIR/.DirIcon"
-    echo "   Icône copiée avec succès"
+    echo "   Icon copied successfully"
 else
-    echo "   Attention: Aucune icône trouvée ($ICON_FILE)"
+    echo "   Warning: No icon found ($ICON_FILE)"
 fi
 
-# 6. Télécharger appimagetool si nécessaire
+# 6. Download appimagetool if necessary
 if [ ! -f "appimagetool" ]; then
-    echo "[5/5] Téléchargement de appimagetool..."
+    echo "[5/5] Downloading appimagetool..."
     wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
     chmod +x appimagetool
 else
-    echo "[5/5] appimagetool déjà présent"
+    echo "[5/5] appimagetool already present"
 fi
 
-# 7. Créer l'AppImage et la copier dans dist/output
-echo "=== Génération de l'AppImage ==="
+# 7. Create AppImage and copy to dist/output
+echo "=== Generating AppImage ==="
 ARCH=x86_64 ./appimagetool "$APPDIR" "${APP_NAME}-x86_64.AppImage"
 mkdir -p dist/output
-cp "${APP_NAME}-x86_64.AppImage" dist/output/
+mv "${APP_NAME}-x86_64.AppImage" dist/output/
 
-# 8. Renommer le dossier dist/animation-frame-builder/win64 en animation-frame-builder_win64
-echo "[8] Renommage du dossier win64..."
+if [ -f "dist/output/${APP_NAME}-x86_64.AppImage" ]; then
+    echo "   AppImage created successfully"
+    IS_APPIMAGE_GENERATED=1
+else
+    echo "Error: AppImage not created!"
+fi
+
+# // BUILD WINDOWS
+# 8. Remove animation-frame-builder_win64 folder
+echo "[8] Removing animation-frame-builder_win64 folder..."
+if [ -d "dist/${ORIGINAL_EXE}_win64" ]; then
+    rm -rf "dist/${ORIGINAL_EXE}_win64"
+fi
+
+# 9. Rename dist/animation-frame-builder/win64 folder to animation-frame-builder_win64
+echo "[8] Renaming win64 folder..."
 if [ -d "dist/${ORIGINAL_EXE}/win64" ]; then
     mv "dist/${ORIGINAL_EXE}/win64" "dist/${ORIGINAL_EXE}_win64"
 fi
 
-# 9. Zipper le dossier animation-frame-builder_win64 et copier le zip dans output
-echo "[9] Création de l'archive ZIP pour Windows..."
+# 10. Zip animation-frame-builder_win64 folder and copy zip to output
+echo "[9] Creating ZIP archive for Windows..."
 if [ -d "dist/${ORIGINAL_EXE}_win64" ]; then
     (cd dist && zip -q -r "output/${APP_NAME}_win64.zip" "${ORIGINAL_EXE}_win64")
-    echo "   Archive ZIP créée dans dist/output/"
+fi
+
+if [ -f "dist/output/${APP_NAME}_win64.zip" ]; then
+    IS_ZIP_GENERATED=1
+else
+    echo "Error: ZIP archive not created!"
 fi
 
 echo ""
-echo "✅ AppImage créée avec succès!"
-echo "📁 Fichier: ${APP_NAME}-x86_64.AppImage"
+echo ""
+echo ""
+
+if [ "$IS_APPIMAGE_GENERATED" -eq 1 ]; then
+echo "✅ AppImage created successfully!"
+echo "📁 File: dist/output/${APP_NAME}-x86_64.AppImage"
+fi
+
+if [ "$IS_ZIP_GENERATED" -eq 1 ]; then
+echo "✅ ZIP archive created successfully!"
+echo "📁 File: dist/output/${APP_NAME}_win64.zip"
+fi
+
 echo ""
