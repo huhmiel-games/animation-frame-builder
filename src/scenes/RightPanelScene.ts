@@ -21,11 +21,12 @@ export class RightPanelScene extends Phaser.Scene
         this.handleWheel = this.handleWheel.bind(this);
         this.changeFrameRate = this.changeFrameRate.bind(this);
         this.offsetXY = this.offsetXY.bind(this);
-        this.saveAssets = this.saveAssets.bind(this);
+        this.saveAllAssets = this.saveAllAssets.bind(this);
         this.toggleFrame = this.toggleFrame.bind(this);
         this.moveFrame = this.moveFrame.bind(this);
         this.syncGridMargins = this.syncGridMargins.bind(this);
         this.setSelectedAnimation = this.setSelectedAnimation.bind(this);
+        this.updateCanvasSize = this.updateCanvasSize.bind(this);
     }
 
     public init(data: { app: App, fileService: FileService }) {
@@ -128,6 +129,41 @@ export class RightPanelScene extends Phaser.Scene
 
             img.src = imageURI;
         });
+    }
+
+    /**
+     * Updates the project dimensions and adjusts all frame offsets to keep them centered.
+     */
+    public async updateCanvasSize(newW: number, newH: number)
+    {
+        const oldW = this.scale.width;
+        const oldH = this.scale.height;
+
+        const deltaX = Math.round((newW - oldW) / 2);
+        const deltaY = Math.round((newH - oldH) / 2);
+
+        // Resize the engine first
+        this.scale.resize(newW, newH);
+        this.cameras.main.setViewport(0, 0, newW, newH);
+        this.sprite?.setPosition(newW / 2, newH / 2);
+
+        // Adjust every frame
+        for (let i = 0; i < this.frames.length; i++)
+        {
+            this.frames[i].offsetX += deltaX;
+            this.frames[i].offsetY += deltaY;
+
+            // Re-render the frame texture with the new size and adjusted offset
+            await this.loadImage(this.frames[i].uri, this.frames[i].offsetX, this.frames[i].offsetY, i);
+
+            // Sync the UI inputs (FrameListElement)
+            this.app.framesInstance[i]?.updateUIFromData(
+                this.frames[i].offsetX,
+                this.frames[i].offsetY,
+                this.frames[i].name,
+                this.frames[i].isEnabled
+            );
+        }
     }
 
     private handleWheel(pointer: Phaser.Input.Pointer)
@@ -339,38 +375,54 @@ export class RightPanelScene extends Phaser.Scene
     public async saveAllAssets()
     {
         this.fileService.clearTargetDirectory(); // Reset directory choice for a new export
-        this.saveAssets(0); // Start recursive saving
+
+        const framesToSave: { frame: TFrame, animIndex: number }[] = [];
+        const counters: Record<string, number> = {};
+
+        for (let i = 0; i < this.frames.length; i++) {
+            const currentFrame = this.frames[i];
+            if (!currentFrame.isEnabled) continue;
+
+            // Use an empty string key for frames without an animation name
+            const animKey = currentFrame.name || "";
+            
+            if (counters[animKey] === undefined) {
+                counters[animKey] = 0;
+            }
+
+            framesToSave.push({
+                frame: currentFrame,
+                animIndex: counters[animKey]
+            });
+
+            counters[animKey]++;
+        }
+
+        this.savePreparedAssets(framesToSave, 0);
     }
 
-    // This is now a private helper for saveAllAssets
-    private saveAssets(idx: number)
+    /**
+     * Recursive helper to save assets, using animation-specific indices.
+     * @param preparedFrames The list of frames to save, including their animation-specific index.
+     * @param currentSaveIndex The current index in the preparedFrames array to process.
+     */
+    private savePreparedAssets(preparedFrames: { frame: TFrame, animIndex: number }[], currentIdx: number)
     {
-        if (idx >= this.frames.length)
-        {
-            return;
-        }
+        if (currentIdx >= preparedFrames.length) return;
 
-        // Skip disabled frames
-        if (!this.frames[idx].isEnabled)
-        {
-            this.saveAssets(idx + 1);
-            return;
-        }
+        const { frame, animIndex } = preparedFrames[currentIdx];
+        const projectName = this.app.gui.nameInput.value || 'img';
+        const animName = frame.name || '';
 
-        const name = this.app.gui.nameInput.value || 'img';
-        const key = this.frames[idx].animFrame.key;
+        // Construct filename: project-animation_index.png OR project_index.png
+        const baseName = animName ? `${projectName}-${animName}` : projectName;
+        const fileName = `${baseName}_${animIndex}`;
 
-        let frameName = this.frames[idx].name || '';
-        if (frameName)
-        {
-            frameName = frameName.padStart(frameName.length + 1, '_');
-        }
-
-        this.sprite?.setTexture(key, 0);
+        this.sprite?.setTexture(frame.animFrame.key, 0);
+        
         this.events.once(Phaser.Renderer.Events.RENDER, async () =>
         {
             const texture = this.game.canvas.toDataURL('image/png');
-            const fileName = `${name}${frameName}_${idx}`;
 
             try {
                 await this.fileService.saveImage(texture, fileName);
@@ -379,10 +431,8 @@ export class RightPanelScene extends Phaser.Scene
                 // Optionally, emit an event to App.ts to show a notification
             }
             
-            if (idx < this.frames.length - 1)
-            {
-                this.saveAssets(idx + 1);
-            }
+            // Continue with the next frame in the prepared list
+            this.savePreparedAssets(preparedFrames, currentIdx + 1);
         }, this);
     }
 

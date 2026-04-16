@@ -155,18 +155,14 @@ export class App
         scene.clearScene();
     }
 
-    startPhaser()
+    async startPhaser()
     {
         const w = +this.gui.widthInput.value;
         const h = +this.gui.heightInput.value;
         if (w !== 0 && h !== 0)
         {
-            config.width = w;
-            config.height = h;
-            this.game.scale.resize(config.width, config.height);
             const scene = this.game.scene.getScene('RightPanelScene') as RightPanelScene;
-            scene.cameras.main.setViewport(0, 0, w, h);
-            scene.sprite?.setPosition(w / 2, h / 2);
+            await scene.updateCanvasSize(w, h);
             this.renderRightGrid();
         }
     }
